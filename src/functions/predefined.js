@@ -49,6 +49,9 @@ export const unaryOps = {
   '+': Number,
   not: not,
   '!': factorial,
+
+  // Reserved word
+  'return': null,
 }
 
 export const binaryOps = {
@@ -67,12 +70,17 @@ export const binaryOps = {
   '>=': greaterThanEqual,
   '<=': lessThanEqual,
 
-  and: and,
-  or: or,
+  and,
+  or,
 }
 
 export const ternaryOps = {
-  '?': condition
+  '?': condition,
+
+  // Reserved words
+  'if': condition,
+  'then': null,
+  'else': null,
 }
 
 export const functions = {
@@ -97,8 +105,6 @@ export const functions = {
   repeat,
 
   char,
-  // Reconsider: if then else
-  //'if': condition,
 }
 
 export const consts = {

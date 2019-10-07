@@ -16,7 +16,7 @@ class Parser {
     const instr = []
     const parserState = new ParserState(this, new TokenStream(this, expr))
     try {
-      parserState.parseExpression(instr)
+      parserState.parse(instr)
       //parserState.expect(TEOF, 'EOF')
     }
     catch (e) {

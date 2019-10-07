@@ -1,10 +1,15 @@
-// import { factorial } from './functions'
+// import { factorial } from '../functions'
 
+// Global library
 if ('undefined'!==typeof window && 'undefined'!==typeof window.expreva) {
   extend(window.expreva)
 }
 
+// Module
 export default function extend(expreva) {
+
+  if (expreva.scope.math) return
+
   Object.assign(expreva.scope, {
     math: {
       random: random,

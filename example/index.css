@@ -1,0 +1,132 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 1em;
+  font-size: 16px;
+  max-width: 800px;
+}
+
+body,
+.section-instructions pre code {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Noto Sans", "Ubuntu", "Droid Sans", "Helvetica Neue", sans-serif;
+}
+
+body, li p {
+  line-height: 1.428;
+}
+
+h1, h2 { margin: .5rem 0 1rem; font-weight: 500; }
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.5rem; }
+h3 { margin: .5rem 0 .5rem; font-weight: 500; font-size: 1.25rem; }
+b { font-weight: 600; }
+p {
+  margin: 1.25rem 0;
+}
+
+ul {
+  padding-left: 2rem;
+  line-height: 1.7; /*1.428;*/
+}
+ul ul { padding-left: 1.5rem; }
+li p {
+  margin: 0 0 .5rem;
+}
+
+hr {
+  margin: 2rem 0 1.25rem;
+  padding: 0;
+  border-top: 0;
+  border-bottom: 1px solid #ddd;
+}
+
+label {
+  margin: .75rem 0 .25rem;
+  display: block;
+  font-size: .9rem;
+  font-weight: 500;
+}
+
+
+button {
+  display: inline-block;
+
+  margin-top: .25em;
+  margin-bottom: .25em;
+
+  padding: .5em 1em;
+  background-color: transparent;
+  border: 1px solid #545454;
+  border-radius: 4px;
+
+  height: auto;
+
+  color: inherit;
+  vertical-align: middle;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+
+  user-select: none;
+  overflow: hidden;
+
+  font-size: 14px;
+}
+
+.button-primary {
+  background-color: #3F86ce;
+  color: white;
+}
+
+button:active {
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1rem rgba(0, 0, 0, .1);
+}
+
+textarea, pre, code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 14px;
+}
+
+pre {
+  margin: 0;
+  padding: 0;
+  display: block;
+}
+code {
+  padding: .25rem .5rem;
+  background-color: #f3f3f3;
+  white-space: pre-wrap;
+}
+pre code {
+  display: block;
+  padding: .5rem .5rem;
+}
+textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.hide { display: none; }
+
+textarea {
+  width: 100%;
+  margin-top: .25rem;
+  margin-bottom: .5rem;
+  padding: .5rem .5rem;
+}
+
+.section-expression textarea,
+.section-result pre code,
+.section-instructions pre code {
+    min-height: 9rem;
+}
+
+.section-result pre code {
+  color: #f7f7f7;
+  background-color: black;
+}
+
+.section-instructions pre code {
+  font-size: 14px;
+}

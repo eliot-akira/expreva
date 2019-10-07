@@ -1,0 +1,6 @@
+_*
+build
+
+node_modules
+*.lock
+package-lock.json

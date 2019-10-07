@@ -156,7 +156,7 @@ export class TokenStream {
     }
     if (i > startPos) {
       const str = this.expression.substring(startPos, i)
-      // this.isOperatorEnabled(str) && (
+      // this.isOperatorEnabled(str) &&
       if (str in this.unaryOps || str in this.binaryOps || str in this.ternaryOps) {
         this.current = this.newToken(TOP, str)
         this.pos += str.length
@@ -186,9 +186,11 @@ export class TokenStream {
       }
     }
     if (hasLetter) {
+
       const str = this.expression.substring(startPos, i)
       this.current = this.newToken(TNAME, str)
       this.pos += str.length
+
       return true
     }
     return false
@@ -327,11 +329,15 @@ export class TokenStream {
   isNumber() {
     let valid = false
     let pos = this.pos
+
+    const prevChar = this.expression.charAt(pos - 1)
+
     let startPos = pos
     let resetPos = pos
-    let foundDot = false
+    let foundDot = prevChar==='.' // Was: false; Support member operator: [].0.0
     let foundDigits = false
     let c
+
     while (pos < this.expression.length) {
       c = this.expression.charAt(pos)
       if (pos===startPos && c==='-' || (c >= '0' && c <= '9') || (!foundDot && c === '.')) {
@@ -347,11 +353,11 @@ export class TokenStream {
       }
     }
     let numString = valid && this.expression.substring(startPos, pos)
-    const prevChar = this.expression.charAt(startPos - 1)
     const isAfterExpression = prevChar
     && (
       prevChar === ')' || prevChar === ']' || prevChar === '}'
       || prevChar === '\'' || prevChar === '"'
+      || prevChar === '.'
       || ALPHANUMERIC_PATTERN.test(prevChar) //(prevChar.toUpperCase()!==prevChar.toLowerCase()) // Alphabet
     )
     const isMember = isAfterExpression && numString && numString[0] === '.'
@@ -393,7 +399,9 @@ export class TokenStream {
     let startPos = this.pos
     let c = this.expression.charAt(this.pos)
     let nextC
-    if (c === '+' || c === '*' || c === '/' || c === '%' || c === '^' || c === '?' || c === ':' || c === '.') {
+    if (c === '+' || c === '*' || c === '/' || c === '%' || c === '^'
+      || c === '.' || c === '?' || c === ':'
+    ) {
       this.current = this.newToken(TOP, c)
     } else if (c === '∙' || c === '•') {
       this.current = this.newToken(TOP, '*')

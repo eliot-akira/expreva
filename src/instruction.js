@@ -5,7 +5,7 @@ export const IOP3 = 'IOP3'
 export const IVAR = 'IVAR'
 export const IVARNAME = 'IVARNAME'
 export const IFUNDEF = 'IFUNDEF'
-export const IANONFUNDEF = 'IANONFUNDEF'
+export const IFUNDEFANON = 'IFUNDEFANON'
 export const IFUNCALL = 'IFUNCALL'
 export const IFUNAPPLY = 'IFUNAPPLY'
 export const IEXPR = 'IEXPR'
@@ -49,7 +49,7 @@ export class Instruction {
       return 'Call function with ' + this.value + ' argument' + plural(this.value)
     case IFUNDEF:
       return 'Define function with ' + this.value + ' argument' + plural(this.value)
-    case IANONFUNDEF:
+    case IFUNDEFANON:
       return 'Define anonymous function with ' + this.value + ' argument' + plural(this.value)
     case IFUNAPPLY:
       return 'Apply to function ' + this.value
