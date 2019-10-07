@@ -2,13 +2,13 @@
 
 Expreva is a small language based on arithmetic and algebra expressions.
 
-![](screenshot.png)
+![](screenshot.jpg)
 
 ## Overview
 
 The goal is to create a functional, extensible language with a Lisp-like simplicity.
 
-This project was originally a fork of [`expr-eval`](https://github.com/silentmatt/expr-eval), a mathematical expression evaluator that's been ported from C to JavaScript.  It's undergoing an extensive redesign to a minimal core of a parser and interpreter, so that most of the functionality can be built with the language itself.
+This project started as a fork of [`expr-eval`](https://github.com/silentmatt/expr-eval), a mathematical expression evaluator that's been ported from C to JavaScript.  It's undergoing an extensive redesign to a minimal core of a parser and interpreter, so that most of the functionality can be built with the language itself.
 
 ## Develop
 
