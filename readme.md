@@ -26,13 +26,13 @@ Build, watch files and rebuild
 yarn dev
 ```
 
-Run tests, watch files and retest
+Run tests and wait for user input to rerun.
 
 ```sh
 yarn test
 ```
 
-This can be run in parallel with `dev` task above, i.e., in another terminal window/tab.
+This can be run in parallel with `dev` task above (in another terminal process) for test-driven development.
 
 #### Build and minify
 

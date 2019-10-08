@@ -87,14 +87,14 @@ function render() {
 
     parsed = expreva.parse(expression, scope)
 
-    //if (typeof parsed==='undefined' || !(parsed.tokens)) return
+    //if (typeof parsed==='undefined' || !(parsed.instructions)) return
     if (typeof parsed==='undefined' || parsed==='') {
       log('Empty result after parse')
       clearText($instructions, /*$parsed, $parsedError,*/ $result, $resultError)
       return
     }
 
-    $instructions.innerText = renderInstructions(parsed.tokens) //JSON.stringify(parsed.tokens || [], null, 2)
+    $instructions.innerText = renderInstructions(parsed.instructions) //JSON.stringify(parsed.instructions || [], null, 2)
 
     if (parsed instanceof Error) {
       log('Parse error', parsed)
@@ -127,7 +127,11 @@ function render() {
     log('Parse error', e)
     // setText($parsedError, 'Error: '+e.message)
     setText($resultError, e.message)
-    clearText($instructions, /*$parsed,*/ $result /*, $resultError*/)
+
+    // Instructions parsed before error
+    $instructions.innerText = renderInstructions(expreva.instructions)
+
+    clearText(/*$instructions, /*$parsed,*/ $result /*, $resultError*/)
   }
 }
 

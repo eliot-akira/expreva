@@ -1,4 +1,4 @@
-const expreva = require('../build/expreva')
+const expreva = require('../../build/expreva')
 
 const parse = (...args) => {
   try {

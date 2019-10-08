@@ -16,12 +16,12 @@ import {
   IENDSTATEMENT
 } from './instruction'
 
-export default function expressionToString(tokens, toJS) {
+export default function expressionToString(instrs, toJS) {
   let nstack = []
   let n1, n2, n3
   let f, argCount, args
-  for (let i = 0; i < tokens.length; i++) {
-    const item = tokens[i]
+  for (let i = 0; i < instrs.length; i++) {
+    const item = instrs[i]
     const type = item.type
     if (type === INUMBER) {
       if (typeof item.value === 'number' && item.value < 0) {

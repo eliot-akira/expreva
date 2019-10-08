@@ -22,8 +22,13 @@ export function set(obj, name, value) {
 
     // Variable assignment
 
-    // this.local.scope
-    this.global.scope[obj] = name
+    if (obj==='local') {
+      Object.assign(this.local.scope, name)
+    } else if (obj==='global') {
+      Object.assign(this.global.scope, name)
+    } else {
+      this.global.scope[obj] = name
+    }
 
     // Anonymous function inherits variable name
     if (name instanceof Function && (!name.name || name.name==='anonymous')) {
@@ -35,6 +40,7 @@ export function set(obj, name, value) {
 
     return name
   }
+
   if (typeof name==='object') {
     Object.assign(obj, name)
   } else {

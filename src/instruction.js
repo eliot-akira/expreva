@@ -2,16 +2,22 @@ export const INUMBER = 'INUMBER'
 export const IOP1 = 'IOP1'
 export const IOP2 = 'IOP2'
 export const IOP3 = 'IOP3'
+
 export const IVAR = 'IVAR'
 export const IVARNAME = 'IVARNAME'
+export const IVARNAME_MEMBER = 'IVARNAME_MEMBER'
+
 export const IFUNDEF = 'IFUNDEF'
 export const IFUNDEFANON = 'IFUNDEFANON'
 export const IFUNCALL = 'IFUNCALL'
 export const IFUNAPPLY = 'IFUNAPPLY'
+
 export const IEXPR = 'IEXPR'
-export const IMEMBER = 'IMEMBER'
+
 export const IARRAY = 'IARRAY'
 export const IOBJECT = 'IOBJECT'
+export const IMEMBER = 'IMEMBER'
+
 export const IENDSTATEMENT = 'IENDSTATEMENT'
 export const IRETURN = 'IRETURN'
 export const IEXPREVAL = 'IEXPREVAL'
@@ -22,45 +28,51 @@ export class Instruction {
     this.value = (value !== undefined && value !== null) ? value : 0
   }
   toString(indent = 0) {
-    switch (this.type) {
-    case INUMBER:
-      if (typeof this.value === 'boolean')
-        return 'Boolean ' + this.value
-      if (typeof this.value === 'string')
-        return 'String ' + this.value
-      return 'Number ' + this.value
-    case IOP1:
-      return 'Operation with 1 argument ' + this.value
-    case IOP2:
-      return 'Operation with 2 arguments ' + this.value
-    case IOP3:
-      return 'Operation with 3 arguments ' + this.value
-    case IVAR:
-      return 'Variable ' + this.value
-    case IVARNAME:
-      return 'Variable name ' + this.value
-    case IEXPR:
-      return 'Expression\n' + instrArrayToString(this.value, indent + 2) //+'\n'
-    case IENDSTATEMENT:
-      return 'End statement'// + this.value
-    case IFUNCALL:
-      return 'Call function with ' + this.value + ' argument' + plural(this.value)
-    case IFUNDEF:
-      return 'Define function with ' + this.value + ' argument' + plural(this.value)
-    case IFUNDEFANON:
-      return 'Define anonymous function with ' + this.value + ' argument' + plural(this.value)
-    case IFUNAPPLY:
-      return 'Apply to function ' + this.value
-      //(typeof this.value==='string' ? this.value : 'to ' + this.value) //+ ' argument' + plural(this.value)
-    case IMEMBER:
-      return 'Member ' + this.value
-    case IARRAY:
-      return 'Array of ' + this.value + ' item' + plural(this.value)
-    case IOBJECT:
-      return 'Object with ' + this.value + ' key-value pair' + plural(this.value)
-    default:
-      return this.type + ' ' + this.value //'Invalid Instruction'
-    }
+    return toString(this.type, this.value, indent)
+  }
+}
+
+function toString(type, value, indent) {
+  switch (type) {
+  case INUMBER:
+    if (typeof value === 'boolean')
+      return 'Boolean ' + value
+    if (typeof value === 'string')
+      return 'String ' + value
+    return 'Number ' + value
+  case IOP1:
+    return 'Operation with 1 argument ' + value
+  case IOP2:
+    return 'Operation with 2 arguments ' + value
+  case IOP3:
+    return 'Operation with 3 arguments ' + value
+  case IVAR:
+    return 'Variable ' + value
+  case IVARNAME:
+    return 'Variable name ' + value
+  case IEXPR:
+    return 'Expression\n' + instrArrayToString(value, indent + 2) //+'\n'
+  case IENDSTATEMENT:
+    return 'End statement'// + value
+  case IFUNCALL:
+    return 'Call function with ' + value + ' argument' + plural(value)
+  case IFUNDEF:
+    return 'Define function with ' + value + ' argument' + plural(value)
+  case IFUNDEFANON:
+    return 'Define anonymous function with ' + value + ' argument' + plural(value)
+  case IFUNAPPLY:
+    return 'Apply to function ' + value
+    //(typeof value==='string' ? value : 'to ' + value) //+ ' argument' + plural(value)
+  case IMEMBER:
+    return 'Member ' + value
+  case IVARNAME_MEMBER:
+    return 'Variable member ' + value.map(i => i.value).join('.')
+  case IARRAY:
+    return 'Array of ' + value + ' item' + plural(value)
+  case IOBJECT:
+    return 'Object with ' + value + ' key-value pair' + plural(value)
+  default:
+    return type + ' ' + value //'Invalid Instruction'
   }
 }
 

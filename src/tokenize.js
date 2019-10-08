@@ -16,24 +16,54 @@ import { toUtf16 } from './utils'
 const ALPHANUMERIC_PATTERN = /^[0-9a-zA-Z]{1}$/i
 const CODEPOINT_CHAR_PATTERN = /^[0-9a-f]{1}$/i
 const CODEPOINT_PATTERN = /^[0-9a-f]{4}$/i
+// TODO: Range of code point
 const EXTENDED_CODEPOINT_PATTERN = /^[0-9a-f]{5}$/i
 
-export class TokenStream {
-  constructor(parser, expression) {
+export default function tokenize(parser, source) {
+  return new Tokenizer(parser, source)
+}
+
+export class Tokenizer {
+
+  constructor(parser, source) {
     this.pos = 0
     this.current = null
+
     this.unaryOps = parser.unaryOps
     this.binaryOps = parser.binaryOps
     this.ternaryOps = parser.ternaryOps
     this.consts = parser.consts
-    this.expression = expression
+    this.source = source
+
     this.savedPosition = 0
     this.savedCurrent = null
     this.options = parser.options
   }
+
   newToken(type, value, pos) {
     return new Token(type, value, pos != null ? pos : this.pos)
   }
+
+  getCoordinates() {
+    let line = 0
+    let column
+    let newline = -1
+    do {
+      line++
+      column = this.pos - newline
+      newline = this.source.indexOf('\n', newline + 1)
+    } while (newline >= 0 && newline < this.pos)
+    return {
+      line: line,
+      column: column
+    }
+  }
+
+  parseError(msg) {
+    const coords = this.getCoordinates()
+    throw new Error('Parse error in line ' + coords.line + ', column ' + coords.column + ': ' + msg)
+  }
+
   save() {
     this.savedPosition = this.pos
     this.savedCurrent = this.current
@@ -42,8 +72,9 @@ export class TokenStream {
     this.pos = this.savedPosition
     this.current = this.savedCurrent
   }
+
   next() {
-    if (this.pos >= this.expression.length) {
+    if (this.pos >= this.source.length) {
       return this.newToken(TEOF, 'EOF')
     }
     if (this.isWhitespace() || this.isComment()) {
@@ -63,30 +94,32 @@ export class TokenStream {
     ) {
       return this.current
     } else {
-      this.parseError('Unknown character "' + this.expression.charAt(this.pos) + '"')
+      this.parseError('Unknown character "' + this.source.charAt(this.pos) + '"')
     }
   }
+
   isString() {
     let r = false
     let startPos = this.pos
-    const quote = this.expression.charAt(startPos)
+    const quote = this.source.charAt(startPos)
     if (quote === '\'' || quote === '"') {
-      let index = this.expression.indexOf(quote, startPos + 1)
-      while (index >= 0 && this.pos < this.expression.length) {
+      let index = this.source.indexOf(quote, startPos + 1)
+      while (index >= 0 && this.pos < this.source.length) {
         this.pos = index + 1
-        if (this.expression.charAt(index - 1) !== '\\') {
-          const rawString = this.expression.substring(startPos + 1, index)
+        if (this.source.charAt(index - 1) !== '\\') {
+          const rawString = this.source.substring(startPos + 1, index)
           this.current = this.newToken(TSTRING, this.unescape(rawString), startPos)
           r = true
           break
         }
-        index = this.expression.indexOf(quote, index + 1)
+        index = this.source.indexOf(quote, index + 1)
       }
     }
     return r
   }
+
   isParen() {
-    const c = this.expression.charAt(this.pos)
+    const c = this.source.charAt(this.pos)
     if (c === '(' || c === ')') {
       this.current = this.newToken(TPAREN, c)
       this.pos++
@@ -94,8 +127,9 @@ export class TokenStream {
     }
     return false
   }
+
   isBracket() {
-    const c = this.expression.charAt(this.pos)
+    const c = this.source.charAt(this.pos)
     if (c === '[' || c === ']' || c === '{' || c === '}') {
       this.current = this.newToken(TBRACKET, c)
       this.pos++
@@ -103,8 +137,9 @@ export class TokenStream {
     }
     return false
   }
+
   isComma() {
-    const c = this.expression.charAt(this.pos)
+    const c = this.source.charAt(this.pos)
     if (c === ',') {
       this.current = this.newToken(TCOMMA, ',')
       this.pos++
@@ -112,8 +147,9 @@ export class TokenStream {
     }
     return false
   }
+
   isSemicolon() {
-    const c = this.expression.charAt(this.pos)
+    const c = this.source.charAt(this.pos)
     if (c === ';') {
       this.current = this.newToken(TSEMICOLON, ';')
       this.pos++
@@ -121,11 +157,12 @@ export class TokenStream {
     }
     return false
   }
+
   isConst() {
     let startPos = this.pos
     let i = startPos
-    for (; i < this.expression.length; i++) {
-      const c = this.expression.charAt(i)
+    for (; i < this.source.length; i++) {
+      const c = this.source.charAt(i)
       if (c.toUpperCase() === c.toLowerCase()) {
         if (i === this.pos || (c !== '_' && c !== '.' && (c < '0' || c > '9'))) {
           break
@@ -133,7 +170,7 @@ export class TokenStream {
       }
     }
     if (i > startPos) {
-      const str = this.expression.substring(startPos, i)
+      const str = this.source.substring(startPos, i)
       if (str in this.consts) {
         this.current = this.newToken(TNUMBER, this.consts[str])
         this.pos += str.length
@@ -142,11 +179,12 @@ export class TokenStream {
     }
     return false
   }
+
   isNamedOp() {
     let startPos = this.pos
     let i = startPos
-    for (; i < this.expression.length; i++) {
-      const c = this.expression.charAt(i)
+    for (; i < this.source.length; i++) {
+      const c = this.source.charAt(i)
       if (c.toUpperCase() === c.toLowerCase()) {
         if (i === this.pos || (c !== '_' && (c < '0' || c > '9'))) {
           break
@@ -155,7 +193,7 @@ export class TokenStream {
     }
     if (i > startPos) {
 
-      const str = this.expression.substring(startPos, i)
+      const str = this.source.substring(startPos, i)
 
       if (str in this.unaryOps || str in this.binaryOps || str in this.ternaryOps) {
         this.current = this.newToken(TOP, str)
@@ -165,12 +203,13 @@ export class TokenStream {
     }
     return false
   }
+
   isName() {
     const startPos = this.pos
     let i = startPos
     let hasLetter = false
-    for (; i < this.expression.length; i++) {
-      let c = this.expression.charAt(i)
+    for (; i < this.source.length; i++) {
+      let c = this.source.charAt(i)
       if (c.toUpperCase() === c.toLowerCase()) {
         if (i === this.pos && (c === '$' || c === '_')) {
           if (c === '_') {
@@ -187,7 +226,7 @@ export class TokenStream {
     }
     if (hasLetter) {
 
-      const str = this.expression.substring(startPos, i)
+      const str = this.source.substring(startPos, i)
       this.current = this.newToken(TNAME, str)
       this.pos += str.length
 
@@ -195,19 +234,21 @@ export class TokenStream {
     }
     return false
   }
+
   isWhitespace() {
     let r = false
-    let c = this.expression.charAt(this.pos)
+    let c = this.source.charAt(this.pos)
     while (c === ' ' || c === '\t' || c === '\n' || c === '\r') {
       r = true
       this.pos++
-      if (this.pos >= this.expression.length) {
+      if (this.pos >= this.source.length) {
         break
       }
-      c = this.expression.charAt(this.pos)
+      c = this.source.charAt(this.pos)
     }
     return r
   }
+
   unescape(v) {
     let index = v.indexOf('\\')
     if (index < 0) {
@@ -279,30 +320,32 @@ export class TokenStream {
     }
     return buffer
   }
+
   isComment() {
-    let c = this.expression.charAt(this.pos)
-    if (c === '/' && this.expression.charAt(this.pos + 1) === '*') {
-      this.pos = this.expression.indexOf('*/', this.pos) + 2
+    let c = this.source.charAt(this.pos)
+    if (c === '/' && this.source.charAt(this.pos + 1) === '*') {
+      this.pos = this.source.indexOf('*/', this.pos) + 2
       if (this.pos === 1) {
-        this.pos = this.expression.length
+        this.pos = this.source.length
       }
       return true
     }
     return false
   }
+
   isRadixInteger() {
     let pos = this.pos
-    if (pos >= this.expression.length - 2 || this.expression.charAt(pos) !== '0') {
+    if (pos >= this.source.length - 2 || this.source.charAt(pos) !== '0') {
       return false
     }
     ++pos
     let radix
     let validDigit
-    if (this.expression.charAt(pos) === 'x') {
+    if (this.source.charAt(pos) === 'x') {
       radix = 16
       validDigit = /^[0-9a-f]$/i
       ++pos
-    } else if (this.expression.charAt(pos) === 'b') {
+    } else if (this.source.charAt(pos) === 'b') {
       radix = 2
       validDigit = /^[01]$/i
       ++pos
@@ -311,8 +354,8 @@ export class TokenStream {
     }
     let valid = false
     let startPos = pos
-    while (pos < this.expression.length) {
-      let c = this.expression.charAt(pos)
+    while (pos < this.source.length) {
+      let c = this.source.charAt(pos)
       if (validDigit.test(c)) {
         pos++
         valid = true
@@ -321,16 +364,17 @@ export class TokenStream {
       }
     }
     if (valid) {
-      this.current = this.newToken(TNUMBER, parseInt(this.expression.substring(startPos, pos), radix))
+      this.current = this.newToken(TNUMBER, parseInt(this.source.substring(startPos, pos), radix))
       this.pos = pos
     }
     return valid
   }
+
   isNumber() {
     let valid = false
     let pos = this.pos
 
-    const prevChar = this.expression.charAt(pos - 1)
+    const prevChar = this.source.charAt(pos - 1)
 
     let startPos = pos
     let resetPos = pos
@@ -338,8 +382,8 @@ export class TokenStream {
     let foundDigits = false
     let c
 
-    while (pos < this.expression.length) {
-      c = this.expression.charAt(pos)
+    while (pos < this.source.length) {
+      c = this.source.charAt(pos)
       if (pos===startPos && c==='-' || (c >= '0' && c <= '9') || (!foundDot && c === '.')) {
         if (c === '.') {
           foundDot = true
@@ -352,7 +396,7 @@ export class TokenStream {
         break
       }
     }
-    let numString = valid && this.expression.substring(startPos, pos)
+    let numString = valid && this.source.substring(startPos, pos)
     const isAfterExpression = prevChar
     && (
       prevChar === ')' || prevChar === ']' || prevChar === '}'
@@ -371,8 +415,8 @@ export class TokenStream {
       pos++
       let acceptSign = true
       let validExponent = false
-      while (pos < this.expression.length) {
-        c = this.expression.charAt(pos)
+      while (pos < this.source.length) {
+        c = this.source.charAt(pos)
         if (acceptSign && (c === '+' || c === '-')) {
           acceptSign = false
         }
@@ -386,7 +430,7 @@ export class TokenStream {
         pos++
       }
       if (validExponent) {
-        numString = this.expression.substring(startPos, pos)
+        numString = this.source.substring(startPos, pos)
       } else {
         pos = resetPos
       }
@@ -395,9 +439,10 @@ export class TokenStream {
     this.pos = pos
     return true
   }
+
   isOperator() {
     let startPos = this.pos
-    let c = this.expression.charAt(this.pos)
+    let c = this.source.charAt(this.pos)
     let nextC
     if (c === '+' || c === '*' || c === '/' || c === '%' || c === '^'
       || c === '.' || c === '?' || c === ':'
@@ -406,28 +451,28 @@ export class TokenStream {
     } else if (c === '∙' || c === '•') {
       this.current = this.newToken(TOP, '*')
     } else if (c === '-') {
-      if (this.expression.charAt(this.pos + 1) === '>') {
+      if (this.source.charAt(this.pos + 1) === '>') {
         this.current = this.newToken(TOP, '->')
         this.pos++
       } else {
         this.current = this.newToken(TOP, '-')
       }
     } else if (c === '>') {
-      if (this.expression.charAt(this.pos + 1) === '=') {
+      if (this.source.charAt(this.pos + 1) === '=') {
         this.current = this.newToken(TOP, '>=')
         this.pos++
       } else {
         this.current = this.newToken(TOP, '>')
       }
     } else if (c === '<') {
-      if (this.expression.charAt(this.pos + 1) === '=') {
+      if (this.source.charAt(this.pos + 1) === '=') {
         this.current = this.newToken(TOP, '<=')
         this.pos++
       } else {
         this.current = this.newToken(TOP, '<')
       }
     } else if (c === '|') {
-      if (this.expression.charAt(this.pos + 1) === '|') {
+      if (this.source.charAt(this.pos + 1) === '|') {
         this.current = this.newToken(TOP, '||')
         this.pos++
       } else {
@@ -435,7 +480,7 @@ export class TokenStream {
         return false
       }
     } else if (c === '&') {
-      if (this.expression.charAt(this.pos + 1) === '&') {
+      if (this.source.charAt(this.pos + 1) === '&') {
         this.current = this.newToken(TOP, '&&')
         this.pos++
       } else {
@@ -443,7 +488,7 @@ export class TokenStream {
         return false
       }
     } else if (c === '=') {
-      nextC = this.expression.charAt(this.pos + 1)
+      nextC = this.source.charAt(this.pos + 1)
       if (nextC === '=') {
         this.current = this.newToken(TOP, '==')
         this.pos++
@@ -454,7 +499,7 @@ export class TokenStream {
         this.current = this.newToken(TOP, c)
       }
     } else if (c === '!') {
-      if (this.expression.charAt(this.pos + 1) === '=') {
+      if (this.source.charAt(this.pos + 1) === '=') {
         this.current = this.newToken(TOP, '!=')
         this.pos++
       } else {
@@ -466,24 +511,5 @@ export class TokenStream {
     this.pos++
 
     return true
-  }
-
-  getCoordinates() {
-    let line = 0
-    let column
-    let newline = -1
-    do {
-      line++
-      column = this.pos - newline
-      newline = this.expression.indexOf('\n', newline + 1)
-    } while (newline >= 0 && newline < this.pos)
-    return {
-      line: line,
-      column: column
-    }
-  }
-  parseError(msg) {
-    const coords = this.getCoordinates()
-    throw new Error('Parse error in line ' + coords.line + ', column ' + coords.column + ': ' + msg)
   }
 }

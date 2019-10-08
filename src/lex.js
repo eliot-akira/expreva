@@ -12,8 +12,11 @@ import {
 import {
   Instruction,
   INUMBER,
+
   IVAR,
   IVARNAME,
+  IVARNAME_MEMBER,
+
   IFUNDEF,
   IFUNDEFANON,
   IFUNCALL,
@@ -33,24 +36,38 @@ const COMPARISON_OPERATORS = ['==', '!=', '<', '<=', '>=', '>', 'in']
 const ADD_SUB_OPERATORS = ['+', '-']
 const TERM_OPERATORS = ['*', '/', '%']
 
-export class ParserState {
+export default function lex(parser, tokenizer) {
+  const lexer = new Lexer(parser, tokenizer)
+  return lexer //.parse()
+}
 
-  constructor(parser, tokenStream, options = {}) {
+export class Lexer {
+
+  constructor(parser, tokenizer) {
     this.parser = parser
-    this.tokens = tokenStream
+    this.tokens = tokenizer
     this.current = null
     this.nextToken = null
     this.next()
     this.savedCurrent = null
     this.savedNextToken = null
+    this.instructions = []
     this.err = function (...args) {
       throw new Error(args[0])
     }
   }
 
   // Start here
-  parse(instr) {
-    this.parseExpressions(instr)
+  parse() {
+    this.instructions = []
+    while(!this.accept(TEOF)) {
+      this.parseExpressions(this.instructions)
+      if (!this.check(TEOF)) {
+        this.instructions.push(new Instruction(IENDSTATEMENT))
+      }
+    }
+    // Store for reference even on parse error
+    return this.instructions
   }
 
   next() {
@@ -177,14 +194,25 @@ export class ParserState {
     const expr = instr.pop()
     const exprInstr = [expr]
 
-    this.expect(TCOMMA)
+    if (expr.type!==IVAR && expr.type!==IEXPR) {
+      instr.push(exprInstr.pop())
+      if (!this.isEndOfExpression()) {
+        instr.push(new Instruction(IENDSTATEMENT))
+      }
+    }
 
-    do {
-      this.parseExpressions(exprInstr)
-    } while (this.hasNextToken() && this.accept(TCOMMA))
+    while (this.hasNextToken()) {
+      if (this.accept(TPAREN, ')')) {
+        break
+      } else if (this.accept(TCOMMA)) {
+        this.parseExpressions(exprInstr)
+      } else if (!this.isEndOfExpression()) {
+        exprInstr.push(new Instruction(IENDSTATEMENT))
+        this.parseExpressions(exprInstr)
+      }
+    }
 
-    this.expect(TPAREN, ')')
-
+    //this.expect(TPAREN, ')')
     instr.push(new Instruction(IEXPR, exprInstr))
 
     this.parseAnonymousFunction(instr)
@@ -193,13 +221,29 @@ export class ParserState {
   }
 
 
-  parseArray(instr) {
+  parseArray(instr, isAfterAssign = false) {
 
     if (!this.accept(TBRACKET, '[')) {
-      this.parseObject(instr)
-      if (!this.isEndOfExpression() && !this.parseNextStatement(instr)) {
-        this.parseVariableAssignment(instr)
+
+      const isAfterObject = this.parseObject(instr)
+
+      if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
+
+      if (!isAfterAssign) {
+        this.parseAssignment(instr)
+        return
       }
+
+      // Include in current expression only what comes after an object
+      const includeNextExpression = !isAfterObject || (
+        this.nextToken.type!==TNAME && this.nextToken.type!==TBRACKET
+      )
+
+      if (includeNextExpression) {
+        this.parseConditionalExpression(instr)
+      }
+
+      this.parseAnonymousFunction(instr)
       return
     }
 
@@ -275,10 +319,12 @@ export class ParserState {
     if (this.accept(TOP, '+')) {
       this.parseObject(instr)
       instr.push(binaryInstruction('+'))
-      return
+      return true
     }
 
     this.parseMemberOfExpression(instr)
+
+    return true
   }
 
   parseKeyValuePair(instr) {
@@ -288,7 +334,9 @@ export class ParserState {
     // Key
 
     if (this.accept(TNAME) || this.accept(TNUMBER) || this.accept(TSTRING)) {
+
       instr.push(new Instruction(INUMBER, this.current.value))
+
     } else if (this.accept(TPAREN, '(')) {
 
       // Expression as key
@@ -312,7 +360,7 @@ export class ParserState {
 
     // { variable }
     const key = instr.pop()
-    instr.push(key, key)
+    instr.push(key, new Instruction(IVAR, key.value))
     return true
   }
 
@@ -345,23 +393,60 @@ export class ParserState {
     return true
   }
 
-  parseVariableAssignment(instr) {
+
+  parseAssignment(instr) {
 
     this.parseConditionalExpression(instr)
     if (this.parseAnonymousFunction(instr)) return
 
     while (this.accept(TOP, '=')) {
-      const varName = instr.pop()
-      const varValue = []
 
-      if (varName.type !== IVAR && varName.type !== IMEMBER) {
+      // Assignment types
+
+      let varName = instr.pop()
+
+      if (varName.type === IVAR) {
+
+        instr.push(new Instruction(IVARNAME, varName.value))
+
+      } else if (varName.type === IMEMBER) {
+
+        // var.member.member..
+
+        const varWithMembers = [
+          new Instruction(IMEMBER, varName.value)
+        ]
+
+        let prevInstr
+        prevInstr = instr.pop()
+        while (prevInstr && prevInstr.type === IMEMBER) {
+          varWithMembers.push(new Instruction(IMEMBER, prevInstr.value))
+          prevInstr = instr.pop()
+        }
+
+        if (prevInstr && prevInstr.type === IVAR) {
+          varWithMembers.push(new Instruction(IVARNAME, prevInstr.value))
+        } else if (prevInstr && prevInstr.type === IEXPR) {
+          varWithMembers.push(new Instruction(prevInstr, prevInstr.value))
+        } else {
+          return this.err('Expected variable with members for assignment but got '+(!prevInstr ? 'undefined' : prevInstr.type))
+        }
+
+        varWithMembers.reverse()
+
+        instr.push(new Instruction(IVARNAME_MEMBER, varWithMembers))
+
+      } else {
+        // TODO: Destructuring
         return this.err('Expected variable for assignment but got '+varName.type)
       }
 
-      this.parseExpression(varValue)
+      const varValue = []
 
-      instr.push(new Instruction(IVARNAME, varName.value))
+      this.parseArray(varValue, true) // afterAssign = true
+
       instr.push(new Instruction(IEXPR, varValue))
+
       instr.push(binaryInstruction('='))
     }
   }
@@ -502,7 +587,17 @@ export class ParserState {
 
     if (!withMember) this.parseMember(instr)
 
+    // If there's a white space before it, assume separate expression
+    if (this.check(TPAREN, '(')) {
+      this.tokens.save()
+      this.tokens.pos -= 2 // It currently points to next token after (
+      const isFunctionCall = !this.tokens.isWhitespace() && !this.tokens.isComment()
+      this.tokens.restore()
+      if (!isFunctionCall) return
+    }
+
     while (this.accept(TPAREN, '(')) {
+
       if (this.accept(TPAREN, ')')) {
         instr.push(new Instruction(IFUNCALL, 0))
       } else {
@@ -512,6 +607,7 @@ export class ParserState {
     }
 
     this.parseFunctionApply(instr)
+    this.parseMemberOfExpression(instr)
   }
 
   parseArgumentList(instr) {
@@ -571,12 +667,11 @@ export class ParserState {
         // -> x
         instr.push(new Instruction(IFUNAPPLY, varName))
       } else {
-        let argCount
         const exprInstr = []
 
         if (hasVar && isAnonFunc) {
           // -> x =>
-          argCount = 1
+          let argCount = 1
           const funcInstr = []
 
           this.expect(TOP, '=>')
@@ -588,6 +683,7 @@ export class ParserState {
         } else {
           // -> (..)
           this.restore()
+
           this.parseWrappedExpression(exprInstr)
           if (this.check(TOP, '=>')) {
             this.parseAnonymousFunction(exprInstr)
@@ -599,5 +695,4 @@ export class ParserState {
       this.parseFunctionCall(instr, true)
     }
   }
-
 }

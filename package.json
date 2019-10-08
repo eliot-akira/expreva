@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "concurrently --raw \"rollup -c rollup.config.js -w\" \"node dev-server\"",
     "build": "rollup -c rollup.min.config.js",
-    "test": "if [ ! -d \"build\" ]; then yarn build; fi; tester tests",
+    "test": "if [ ! -d \"build\" ]; then yarn build; fi; tester src/tests",
     "deploy": "./deploy"
   },
   "main": "index.js",

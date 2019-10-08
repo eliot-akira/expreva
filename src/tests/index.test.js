@@ -10,8 +10,9 @@ test('parse', it => {
   let result = parse('1')
 
   it('parses', result)
-  it('returns tokens', result.tokens)
+  it('returns instructions', result.instructions)
   it('result can be evaluated', result.evaluate()===1)
+  it('instructions can be evaluated', evaluate(result.instructions)===1)
 })
 
 
@@ -92,7 +93,14 @@ test('list', it => {
 })
 
 test('object', it => {
-  it('{ a:1, b:2, c:3 }', it.is(evaluate('{ a:1, b:2, c:3 }'), { a:1, b:2, c:3 }))
+
+  let code
+  code = `{ a: 1, b: 2, c: 3 }`
+  it(code, it.is(evaluate(code), { a: 1, b: 2, c: 3 }))
+
+  code = `key = 'value'; { key }`
+  it(code, it.is(evaluate(code), { key: 'value' }))
+
 })
 
 test('function', it => {
@@ -101,15 +109,56 @@ test('function', it => {
 
   it('create function: x => x * x', f instanceof Function)
   it('function runs correctly: x => x * x', f(3)===9)
-  it('(x => x * x)(3)', evaluate('(x => x * x)(3)')===9)
-  it('((x, y) => x * y)(3, 4)', evaluate('((x, y) => x * y)(3, 4)')===12)
-  it('(x => y => z => x * y * z)(3)(4)(5)', evaluate('(x => y => z => x * y * z)(3)(4)(5)')===60)
+
+  let code
+  code = '(x => x * x)(3)'
+  it(code, evaluate(code)===9)
+
+  code = '((x, y) => x * y)(3, 4)'
+  it(code, evaluate(code)===12)
+
+  code = '(x => y => z => x * y * z)(3)(4)(5)'
+  it(code, evaluate(code)===60)
+
+  code = 'percent = x => x / 100; percent(2)'
+  it(code, evaluate(code)===2/100)
 })
 
 
 test('member', it => {
   it('[ 1, 2, 3 ].0', it.is(evaluate('[ 1, 2, 3 ].0'), 1))
   it(`[ [ 1, 2, 3 ], [ 'a', 'b', 'c' ] ].1.2`, it.is(evaluate(`[ [ 1, 2, 3 ], [ 'a', 'b', 'c' ] ].1.2`), 'c'))
+})
+
+test('assignment', it => {
+
+  let code
+
+  code = `a = {}
+a.b = 'hi'
+a
+`
+
+  it(code, it.is(evaluate(code), { b: 'hi' }))
+  code = `a=[1]
+b=[2]
+b`
+  it(code, it.is(evaluate(code), [2]))
+})
+
+test('assignment: member', it => {
+
+  let code
+
+  code = `a = {}; a.b = {}; a.b.c = 1; a`
+  it(code, it.is(evaluate(code), { b: { c: 1 } }))
+  code = `a = {}; a.b = {}; a.b.c = 1`
+  it(code, it.is(evaluate(code), 1))
+
+  code = `a = [1, []]; a.1.0 = 2; a`
+  it(code, it.is(evaluate(code), [ 1, [ 2 ] ]))
+  code = `a = [1, []]; a.1.0 = 2`
+  it(code, it.is(evaluate(code), 2))
 })
 
 
@@ -133,6 +182,7 @@ test('apply to anonymous function', it => {
   //it('3->x => x * x -> x => x * x', it.is(evaluate('3->x => x * x->x => x * x)'), 81))
 
 })
+
 
 test('statement', it => {
   it('1 ; 2 ; 3', it.is(evaluate('1 ; 2 ; 3'), 3))
