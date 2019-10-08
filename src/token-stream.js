@@ -11,7 +11,6 @@ import {
   TCOLON,
   TSEMICOLON
 } from './token'
-import { getOptionName } from './options'
 import { toUtf16 } from './utils'
 
 const ALPHANUMERIC_PATTERN = /^[0-9a-zA-Z]{1}$/i
@@ -155,8 +154,9 @@ export class TokenStream {
       }
     }
     if (i > startPos) {
+
       const str = this.expression.substring(startPos, i)
-      // this.isOperatorEnabled(str) &&
+
       if (str in this.unaryOps || str in this.binaryOps || str in this.ternaryOps) {
         this.current = this.newToken(TOP, str)
         this.pos += str.length
@@ -431,6 +431,15 @@ export class TokenStream {
         this.current = this.newToken(TOP, '||')
         this.pos++
       } else {
+        // Bit shift?
+        return false
+      }
+    } else if (c === '&') {
+      if (this.expression.charAt(this.pos + 1) === '&') {
+        this.current = this.newToken(TOP, '&&')
+        this.pos++
+      } else {
+        // Bit shift?
         return false
       }
     } else if (c === '=') {
@@ -455,18 +464,10 @@ export class TokenStream {
       return false
     }
     this.pos++
-    // if (this.isOperatorEnabled(this.current.value)) {
+
     return true
-    // } else {
-    //   this.pos = startPos
-    //   return false
-    // }
   }
-  isOperatorEnabled(op) {
-    const optionName = getOptionName(op)
-    const operators = this.options.operators || {}
-    return !(optionName in operators) || !!operators[optionName]
-  }
+
   getCoordinates() {
     let line = 0
     let column

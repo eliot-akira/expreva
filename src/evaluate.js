@@ -14,8 +14,6 @@ import {
   IARRAY,
   IOBJECT,
   IENDSTATEMENT,
-
-  // Only used inside evaluate
   IEXPREVAL
 } from './instruction'
 
@@ -36,6 +34,10 @@ export default function evaluate(tokens, expr, scope = {}) {
     local: {
       scope
     }
+  }
+
+  function callWithContext(f, args) {
+    return f.apply(functionContext, args)
   }
 
   function err(arg) {
@@ -90,13 +92,13 @@ export default function evaluate(tokens, expr, scope = {}) {
     case IOP2:
       n2 = stack.pop()
       n1 = stack.pop()
-      if (token.value === 'and') {
+      if (token.value === 'and' || token.value === '&&') {
         stack.push(n1 ? !!evaluate(n2, expr, scope) : false)
-      } else if (token.value === 'or') {
+      } else if (token.value === 'or' || token.value === '||') {
         stack.push(n1 ? true : !!evaluate(n2, expr, scope))
       } else {
         f = expr.binaryOps[token.value]
-        stack.push(f.apply(functionContext, [resolveExpression(n1), resolveExpression(n2)]))
+        stack.push(callWithContext(f, [resolveExpression(n1), resolveExpression(n2)]))
       }
       break
 
@@ -153,9 +155,9 @@ export default function evaluate(tokens, expr, scope = {}) {
 
       if (isExpressionEvaluator(f)) {
         f = resolveExpression(f)
-        n1 = f instanceof Function ? f.apply(functionContext, args) : f
+        n1 = f instanceof Function ? callWithContext(f, args) : f
       } else if (f instanceof Function) {
-        n1 = f.apply(functionContext, args)
+        n1 = callWithContext(f, args)
       } else {
         // Calling a value other than function or expression returns itself
         n1 = f
@@ -211,9 +213,9 @@ export default function evaluate(tokens, expr, scope = {}) {
 
       if (f instanceof Function) {
         if (isExpressionEvaluator(n1)) {
-          stack.push(f.apply(functionContext, [resolveExpression(n1)]))
+          stack.push(callWithContext(f, [resolveExpression(n1)]))
         } else {
-          stack.push(f.apply(functionContext, [n1]))
+          stack.push(callWithContext(f, [n1]))
         }
       } else {
         return err('Cannot apply: not a function '+f)

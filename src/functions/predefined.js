@@ -47,10 +47,11 @@ import {
 export const unaryOps = {
   '-': negative,
   '+': Number,
-  not: not,
+
   '!': factorial,
 
-  // Reserved word
+  // Reserved words
+  not,
   'return': null,
 }
 
@@ -69,6 +70,9 @@ export const binaryOps = {
   '<': lessThan,
   '>=': greaterThanEqual,
   '<=': lessThanEqual,
+
+  '&&': and,
+  '||': or,
 
   and,
   or,

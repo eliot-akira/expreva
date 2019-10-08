@@ -19,8 +19,20 @@ export function set(obj, name, value) {
   if (typeof name==='undefined') return (...args) => set(obj, ...args)
 
   if (typeof obj==='string') {
+
+    // Variable assignment
+
     // this.local.scope
     this.global.scope[obj] = name
+
+    // Anonymous function inherits variable name
+    if (name instanceof Function && (!name.name || name.name==='anonymous')) {
+      Object.defineProperty(name, 'name', {
+        value: obj,
+        writable: false
+      })
+    }
+
     return name
   }
   if (typeof name==='object') {

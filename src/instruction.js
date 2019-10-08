@@ -13,8 +13,6 @@ export const IMEMBER = 'IMEMBER'
 export const IARRAY = 'IARRAY'
 export const IOBJECT = 'IOBJECT'
 export const IENDSTATEMENT = 'IENDSTATEMENT'
-
-// Only used inside evaluate
 export const IRETURN = 'IRETURN'
 export const IEXPREVAL = 'IEXPREVAL'
 

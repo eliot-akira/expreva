@@ -7,6 +7,7 @@ export const TPAREN = 'TPAREN'
 export const TBRACKET = 'TBRACKET'
 export const TCOMMA = 'TCOMMA'
 export const TCOLON = 'TCOLON'
+export const TELLIPSIS = 'TELLIPSIS'
 export const TSEMICOLON = 'TSEMICOLON'
 
 export class Token {

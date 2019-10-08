@@ -1,27 +1,6 @@
-const expreva = require('../build/expreva')
-
-const parse = (...args) => {
-  try {
-    return expreva.parse(...args)
-  } catch(e) {
-    console.log(e.message)
-    return e
-  }
-}
-
-const evaluate = (...args) => {
-  try {
-    return expreva.evaluate(...args)
-  } catch(e) {
-    console.log(e.message)
-    return e
-  }
-}
+const { parse, evaluate } = require('./common')
 
 test('expreva', it => {
-
-  it('exists', expreva)
-
   it('has method evaluate', evaluate)
   it('has method parse', parse)
 })
@@ -42,6 +21,18 @@ test('arithmetic', it => {
   it('1 + 2 * 3', evaluate('1 + 2 * 3')===7)
   it('(1 + 2) * 3', evaluate('(1 + 2) * 3')===9)
   it('10 / 2', evaluate('10 / 2')===5)
+})
+
+test('comparison', it => {
+
+  it('1 + 1 == 2', evaluate('1 + 1 == 2')===true)
+  it('1 + 1 != 2', evaluate('1 + 1 != 2')===false)
+  it('3 * 3 > 3 + 3', evaluate('3 * 3 > 3 + 3')===true)
+  it('1 + 1 < 2', evaluate('1 + 1 < 2')===false)
+  it('2 * 2 >= 2 + 2', evaluate('2 * 2 >= 2 + 2')===true)
+  it('3 + 3 <= 2 + 3', evaluate('3 + 3 <= 2 + 3')===false)
+  it('2 == 2 && 3 == 3', evaluate('2 == 2 && 3 == 3')===true)
+  it('2 != 2 || 3 == 3', evaluate('2 != 2 || 3 == 3')===true)
 })
 
 test('operator: conditional', it => {
@@ -76,6 +67,10 @@ test('if', it => {
   it(code, evaluate(code)==='YES')
   code = `if 3->(x=>x*x)==9 then if false then 'YES' else 'NO'`
   it(code, evaluate(code)==='NO')
+
+  code = `if not 1 > 2 then true else false`
+  it(code, evaluate(code)===true)
+
 })
 
 
@@ -120,10 +115,6 @@ test('member operator', it => {
 test('apply', it => {
 
   it('[ 1, 2, 3 ]->map(x => x * x)', it.is(evaluate('[ 1, 2, 3 ]->map(x => x * x)'), [ 1, 4, 9 ]))
-
-})
-
-test('apply chain', it => {
 
   let code = `{ a:1, b:2, c:3 }->map((key,value) => key+'='+value)->join(' ')`
   it(code, evaluate(code)==='a=1 b=2 c=3')

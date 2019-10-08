@@ -8,7 +8,7 @@
     "test": "if [ ! -d \"build\" ]; then yarn build; fi; tester tests",
     "deploy": "./deploy"
   },
-  "main": "src/index.js",
+  "main": "index.js",
   "browser": "build/expreva.js",
   "files": [
     "**/*.js",
