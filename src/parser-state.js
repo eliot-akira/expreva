@@ -148,12 +148,6 @@ export class ParserState {
   parseExpressions(instr) {
     this.parseExpression(instr)
     this.parseNextStatement(instr)
-
-    // const exprInstr = []
-    // this.parseExpression(exprInstr)
-    // if (!this.parseNextStatement(instr, exprInstr)) {
-    //   instr.push(...exprInstr)
-    // }
   }
 
   parseExpression(instr) {
@@ -161,14 +155,12 @@ export class ParserState {
     this.parseArray(instr)
   }
 
-  parseNextStatement(instr, exprInstr = []) {
+  parseNextStatement(instr) {
     if (!this.accept(TSEMICOLON)) return false
     if (!this.isEndOfExpression()) {
-      exprInstr.push(new Instruction(IENDSTATEMENT))
-      this.parseExpressions(exprInstr)
+      instr.push(new Instruction(IENDSTATEMENT))
+      this.parseExpressions(instr)
     }
-    instr.push(...exprInstr)
-    //if (exprInstr[0]) instr.push(new Instruction(IEXPR, exprInstr))
     return true
   }
 

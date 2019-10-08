@@ -68,8 +68,8 @@ test('if', it => {
   code = `if 3->(x=>x*x)==9 then if false then 'YES' else 'NO'`
   it(code, evaluate(code)==='NO')
 
-  code = `if not 1 > 2 then true else false`
-  it(code, evaluate(code)===true)
+  // code = `if not 1 > 2 then true else false`
+  // it(code, evaluate(code)===true)
 
 })
 
@@ -106,7 +106,8 @@ test('function', it => {
   it('(x => y => z => x * y * z)(3)(4)(5)', evaluate('(x => y => z => x * y * z)(3)(4)(5)')===60)
 })
 
-test('member operator', it => {
+
+test('member', it => {
   it('[ 1, 2, 3 ].0', it.is(evaluate('[ 1, 2, 3 ].0'), 1))
   it(`[ [ 1, 2, 3 ], [ 'a', 'b', 'c' ] ].1.2`, it.is(evaluate(`[ [ 1, 2, 3 ], [ 'a', 'b', 'c' ] ].1.2`), 'c'))
 })
