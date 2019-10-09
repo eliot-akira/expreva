@@ -388,13 +388,23 @@ export class Tokenizer {
     let valid = false
     let pos = this.pos
 
-    const prevChar = this.source.charAt(pos - 1)
+    let prevPos = pos - 1
+    let prevChar
 
     let startPos = pos
     let resetPos = pos
-    let foundDot = prevChar==='.' // Was: false; Support member operator: [].0.0
+    let foundDot = false
     let foundDigits = false
     let c
+
+    // Skip whitespace to last char
+    while ((prevChar = this.source.charAt(prevPos)) && this.isWhitespaceChar(prevChar)) {
+      prevPos--
+    }
+
+    foundDot = prevChar==='.' // Following a member operator
+
+    // Get number string
 
     while (pos < this.source.length) {
       c = this.source.charAt(pos)
@@ -410,21 +420,26 @@ export class Tokenizer {
         break
       }
     }
+
     let numString = valid && this.source.substring(startPos, pos)
+
     const isAfterExpression = prevChar
-    && (
-      prevChar === ')' || prevChar === ']' || prevChar === '}'
-      || prevChar === '\'' || prevChar === '"'
-      || prevChar === '.'
-      || ALPHANUMERIC_PATTERN.test(prevChar) //(prevChar.toUpperCase()!==prevChar.toLowerCase()) // Alphabet
-    )
+      && (
+        prevChar === ')' || prevChar === ']' || prevChar === '}'
+        || prevChar === '\'' || prevChar === '"'
+        || prevChar === '.'
+        || ALPHANUMERIC_PATTERN.test(prevChar) //(prevChar.toUpperCase()!==prevChar.toLowerCase()) // Alphabet
+      )
+
     const isMember = isAfterExpression && numString && numString[0] === '.'
 
     if (isMember || !valid) {
       this.pos = resetPos
       return false
     }
+
     resetPos = pos
+
     if (c === 'e' || c === 'E') {
       pos++
       let acceptSign = true
@@ -449,6 +464,9 @@ export class Tokenizer {
         pos = resetPos
       }
     }
+
+    // TODO: Wrap in number type for float (default), big number
+
     this.current = this.newToken(TNUMBER, parseFloat(numString))
     this.pos = pos
     return true
