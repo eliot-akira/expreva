@@ -235,10 +235,14 @@ export class Tokenizer {
     return false
   }
 
+  isWhitespaceChar(c) {
+    return c === ' ' || c === '\t' || c === '\n' || c === '\r'
+  }
+
   isWhitespace() {
     let r = false
     let c = this.source.charAt(this.pos)
-    while (c === ' ' || c === '\t' || c === '\n' || c === '\r') {
+    while (this.isWhitespaceChar(c)) {
       r = true
       this.pos++
       if (this.pos >= this.source.length) {
@@ -323,14 +327,24 @@ export class Tokenizer {
 
   isComment() {
     let c = this.source.charAt(this.pos)
-    if (c === '/' && this.source.charAt(this.pos + 1) === '*') {
-      this.pos = this.source.indexOf('*/', this.pos) + 2
-      if (this.pos === 1) {
-        this.pos = this.source.length
-      }
-      return true
+    if (c !== '/') return false
+
+    c = this.source.charAt(this.pos + 1)
+    if (c !== '*' && c !== '/') return false
+
+    const isShortComment = c === '/'
+    const endToken = isShortComment ? '\n' : '*/'
+
+    this.pos = this.source.indexOf(endToken, this.pos)
+
+    if (this.pos === -1) {
+      // End token not found
+      this.pos = this.source.length
+    } else {
+      this.pos += endToken.length
     }
-    return false
+
+    return true
   }
 
   isRadixInteger() {
