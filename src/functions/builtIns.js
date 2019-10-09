@@ -30,12 +30,17 @@ import {
 
   push,
   pop,
+
   insert,
   slice,
   search,
-  size,
+
   keys,
+  values,
+  size,
+
   join,
+  split,
 
   map,
   filter,
@@ -93,22 +98,27 @@ export const functions = {
   set,
   unset,
   use,
+  char,
 
   push,
   pop,
+
   insert,
   slice,
   search,
-  size,
+
   keys,
+  values,
+  size,
+
   join,
+  split,
 
   map,
   filter,
   reduce,
   repeat,
 
-  char,
 }
 
 export const consts = {

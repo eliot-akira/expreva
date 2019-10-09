@@ -179,7 +179,7 @@ export function search(arr, item) {
   return arr
 }
 
-// keys, repeat, join
+// keys, values
 
 export function keys(arr) {
 
@@ -194,29 +194,19 @@ export function keys(arr) {
   return arr
 }
 
-export function repeat(num, fn) {
+export function values(arr) {
 
-  // Curried: repeat(num)(fn)
-  if (typeof fn==='undefined')  {
-    return function(nextFn) {
-      return repeat(num, nextFn)
-    }
-  }
+  if (Array.isArray(arr)) return arr
+  if (typeof arr==='string') return arr.split()
 
-  // Reversed arguments: repeat(fn, num)
-  if (num instanceof Function) {
-    var _ = fn
-    fn = num
-    num = _
-  }
-
-  const arr = []
-  for (let i=0; i < num; i++) {
-    arr.push(fn(i))
+  if (typeof arr==='object') {
+    return Object.values(arr)
   }
 
   return arr
 }
+
+// join, split
 
 export function join(arr, sep) {
 
@@ -249,6 +239,58 @@ export function join(arr, sep) {
 
   if (typeof arr==='string') {
     return arr+sep
+  }
+
+  return arr
+}
+
+export function split(arr, sep) {
+
+  // Curried: join(arr)(sep)
+  if (typeof sep==='undefined')  {
+    return function(arg) {
+      return split(arr, arg)
+    }
+  }
+
+  if (typeof arr==='string') {
+    return arr.split(sep)
+  }
+
+  // Split array
+  if (Array.isArray(arr)) {
+  }
+
+  // Split object..?
+  if (typeof arr==='object') {
+  }
+
+  return arr
+}
+
+
+// TODO: Flexbile loop construct
+
+export function repeat(num, fn) {
+
+  // Curried: repeat(num)(fn)
+  if (typeof fn==='undefined')  {
+    return function(nextFn) {
+      return repeat(num, nextFn)
+    }
+  }
+
+  // Reversed arguments: repeat(fn, num)
+  if (num instanceof Function) {
+    let _ = fn
+    fn = num
+    num = _
+  }
+
+  const arr = []
+
+  for (let i=0; i < num; i++) {
+    arr.push(fn(i))
   }
 
   return arr
