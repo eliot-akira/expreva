@@ -69,9 +69,9 @@ test('if', it => {
   code = `if 3->(x=>x*x)==9 then if false then 'YES' else 'NO'`
   it(code, evaluate(code)==='NO')
 
-  // code = `if not 1 > 2 then true else false`
-  // it(code, evaluate(code)===true)
-
+  // TODO: Not should get following expression
+  code = `if not 1 > 2 then true else false`
+  it(code, evaluate(code)===true)
 })
 
 
@@ -191,4 +191,13 @@ test('statement', it => {
   it('{ a: 1 ; 2 }', it.is(evaluate('{ a: 1 ; 2 }'), { a: 2 }))
   it('{ a: 1 ; 2, b: 3 }', it.is(evaluate('{ a: 1 ; 2, b: 3 }'), { a: 2, b: 3 }))
   it('{ a: (f = x => x * x; f(3)) }', it.is(evaluate('{ a: (f = x => x * x; f(3)) }'), { a: 9 }))
+})
+
+
+test('return', it => {
+
+  let code = `x = 1
+return 2==2
+x = 3`
+  it(code, it.is(evaluate(code), true))
 })

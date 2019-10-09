@@ -12,7 +12,6 @@ import {
 import {
   Instruction,
   INUMBER,
-
   IVAR,
   IVARNAME,
   IVARNAME_MEMBER,
@@ -140,7 +139,9 @@ export class Lexer {
       || (this.nextToken.type === TBRACKET &&
         (this.nextToken.value === '}' || this.nextToken.value === ']')
       )
-      || (this.nextToken.type === TOP && this.nextToken.value === '->')
+      || (this.nextToken.type === TOP && (
+        this.nextToken.value === '->'
+      ))
   }
 
   parseAtom(instr) {
@@ -234,10 +235,10 @@ export class Lexer {
         return
       }
 
-      // Include in current expression only what comes after an object
-      const includeNextExpression = !isAfterObject || (
-        this.nextToken.type!==TNAME && this.nextToken.type!==TBRACKET
-      )
+      const includeNextExpression = isAfterObject
+        // Include in current expression only what comes after an object
+        ? this.nextToken.type!==TNAME && this.nextToken.type!==TBRACKET
+        : true
 
       if (includeNextExpression) {
         this.parseConditionalExpression(instr)
@@ -405,6 +406,8 @@ export class Lexer {
 
       let varName = instr.pop()
 
+      if (!varName) this.err('Expected variable for assignment but got '+varName)
+
       if (varName.type === IVAR) {
 
         instr.push(new Instruction(IVARNAME, varName.value))
@@ -530,6 +533,17 @@ export class Lexer {
   }
 
   parseTerm(instr) {
+    // Return operator must be parsed early
+    if (this.accept(TOP, 'return')) {
+      this.parseExpression(instr)
+      instr.push(unaryInstruction('return'))
+      return
+    }
+    if (this.accept(TOP, 'not')) {
+      this.parseExpression(instr)
+      instr.push(unaryInstruction('not'))
+      return
+    }
     this.parseFactor(instr)
     while (this.accept(TOP, TERM_OPERATORS)) {
       const op = this.current
@@ -569,9 +583,6 @@ export class Lexer {
     this.parseFunctionCall(instr)
     while (this.accept(TOP, '!')) {
       instr.push(unaryInstruction('!'))
-    }
-    if (this.accept(TOP, 'return')) {
-      instr.push(unaryInstruction('return'))
     }
   }
 
