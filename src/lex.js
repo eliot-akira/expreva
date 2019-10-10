@@ -169,16 +169,9 @@ export class Lexer {
   }
 
   parseExpression(instr) {
-
-    // Validate start of expression
-    if (this.accept(TPAREN, ')')) return this.err('Unexpected token ")"')
-    if (this.accept(TBRACKET, '}')) return this.err('Unexpected token "}"')
-    if (this.accept(TBRACKET, ']')) return this.err('Unexpected token "]"')
-    if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
-    if (this.accept(TOP, '->')) return this.err('Unexpected token "->"')
-
     // This starts the chain of parse steps
     this.parseArray(instr)
+
   }
 
   parseNextStatement(instr) {
@@ -191,6 +184,13 @@ export class Lexer {
   }
 
   parseInnerExpressions(instr) {
+
+    // Validate start of expression
+    if (this.accept(TPAREN, ')')) return this.err('Unexpected token ")"')
+    if (this.accept(TBRACKET, '}')) return this.err('Unexpected token "}"')
+    if (this.accept(TBRACKET, ']')) return this.err('Unexpected token "]"')
+    if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
+    if (this.accept(TOP, '->')) return this.err('Unexpected token "->"')
 
     if (!this.accept(TPAREN, '(')) return false
 
