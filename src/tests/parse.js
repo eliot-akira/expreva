@@ -11,10 +11,38 @@ test('parse', it => {
 })
 
 test('parse invalid', it => {
-  it(')', it.throws(() => parse(')')))
-  it('}', it.throws(() => parse('}')))
-  it(']', it.throws(() => parse(']')))
-  it('.', it.throws(() => parse('.')))
+  const invalidExpressions = [
+    '(',
+    ')',
+    '{',
+    '}',
+    '[',
+    ']',
+    '.',
+    ',',
+    '->',
+    '?',
+    ':'
+  ]
 
-  //it('x->', it.throws(() => parse('x->')))
+  for (const expr of invalidExpressions) {
+    it(expr, it.throws(() => parse(expr)))
+  }
+})
+
+test('parse valid', it => {
+  const validExpressions = [
+    '()',
+    '{}',
+    '[]',
+    'a={} a.b',
+    '[1,2]',
+    '1->()',
+    'true?1:0',
+    '{a:1}'
+  ]
+
+  for (const expr of validExpressions) {
+    it(expr, !it.throws(() => parse(expr)))
+  }
 })

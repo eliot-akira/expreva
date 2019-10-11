@@ -134,8 +134,9 @@ export class Lexer {
 
   isEndOfExpression() {
     return !this.hasNextToken()
-      || this.nextToken.type===TSEMICOLON
-      || (this.nextToken.type === TPAREN && this.nextToken.value === ')')
+    || this.nextToken.type===TSEMICOLON
+    || this.nextToken.type===TCOMMA
+    || (this.nextToken.type === TPAREN && this.nextToken.value === ')')
       || (this.nextToken.type === TBRACKET &&
         (this.nextToken.value === '}' || this.nextToken.value === ']')
       )
@@ -164,14 +165,35 @@ export class Lexer {
 
 
   parseExpressions(instr) {
+    this.validateStartOfExpression()
     this.parseExpression(instr)
+    this.validateEndOfExpression()
     this.parseNextStatement(instr)
   }
 
-  parseExpression(instr) {
-    // This starts the chain of parse steps
-    this.parseArray(instr)
+  parseExpression(instr, isAfterAssign) {
 
+    if (this.parseArray(instr)) return
+
+    const isAfterObject = this.parseObject(instr)
+
+    if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
+
+    if (!isAfterAssign) {
+      this.parseAssignment(instr)
+      return
+    }
+
+    const includeNextExpression = isAfterObject
+      // Include in current expression only what comes after an object
+      ? this.nextToken.type!==TNAME && this.nextToken.type!==TBRACKET
+      : true
+
+    if (includeNextExpression) {
+      this.parseConditionalExpression(instr)
+    }
+
+    this.parseAnonymousFunction(instr)
   }
 
   parseNextStatement(instr) {
@@ -183,16 +205,31 @@ export class Lexer {
     return true
   }
 
-  parseInnerExpressions(instr) {
-
-    // Validate start of expression
+  validateStartOfExpression() {
     if (this.accept(TPAREN, ')')) return this.err('Unexpected token ")"')
     if (this.accept(TBRACKET, '}')) return this.err('Unexpected token "}"')
     if (this.accept(TBRACKET, ']')) return this.err('Unexpected token "]"')
     if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
+    if (this.accept(TCOMMA)) return this.err('Unexpected token ","')
+    if (this.accept(TOP, '=')) return this.err('Unexpected token "="')
     if (this.accept(TOP, '->')) return this.err('Unexpected token "->"')
+    if (this.accept(TOP, '?')) return this.err('Unexpected token "?"')
+    if (this.accept(TOP, ':')) return this.err('Unexpected token ":"')
+  }
+
+  validateEndOfExpression() {
+    if (this.accept(TPAREN, '(')) return this.err('Unexpected token "("')
+    if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
+    if (this.accept(TOP, '?')) return this.err('Unexpected token "?"')
+    if (this.accept(TOP, ':')) return this.err('Unexpected token ":"')
+  }
+
+  parseInnerExpressions(instr) {
+
+    this.validateStartOfExpression()
 
     if (!this.accept(TPAREN, '(')) return false
+    if (this.accept(TPAREN, ')')) return true // Empty is valid
 
     this.parseExpressions(instr)
 
@@ -210,10 +247,13 @@ export class Lexer {
       }
     }
 
+    if (!this.hasNextToken()) this.err("Unexpected end of expression")
+
     while (this.hasNextToken()) {
-      if (this.accept(TPAREN, ')')) {
-        break
-      } else if (this.accept(TCOMMA)) {
+
+      if (this.accept(TPAREN, ')')) break
+
+      if (this.accept(TCOMMA)) {
         this.parseExpressions(exprInstr)
       } else if (!this.isEndOfExpression()) {
         exprInstr.push(new Instruction(IENDSTATEMENT))
@@ -221,7 +261,6 @@ export class Lexer {
       }
     }
 
-    //this.expect(TPAREN, ')')
     instr.push(new Instruction(IEXPR, exprInstr))
 
     this.parseAnonymousFunction(instr)
@@ -230,33 +269,13 @@ export class Lexer {
   }
 
 
-  parseArray(instr, isAfterAssign = false) {
+  parseArray(instr) {
 
-    if (!this.accept(TBRACKET, '[')) {
-
-      const isAfterObject = this.parseObject(instr)
-
-      if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
-
-      if (!isAfterAssign) {
-        this.parseAssignment(instr)
-        return
-      }
-
-      const includeNextExpression = isAfterObject
-        // Include in current expression only what comes after an object
-        ? this.nextToken.type!==TNAME && this.nextToken.type!==TBRACKET
-        : true
-
-      if (includeNextExpression) {
-        this.parseConditionalExpression(instr)
-      }
-
-      this.parseAnonymousFunction(instr)
-      return
-    }
+    if (!this.accept(TBRACKET, '[')) return false
 
     let argCount = 0
+
+    if (!this.hasNextToken()) this.err("Unexpected end of array: missing \"]\"")
 
     if (!this.accept(TBRACKET, ']') && this.hasNextToken()) {
 
@@ -276,10 +295,11 @@ export class Lexer {
     if (this.accept(TOP, '+')) {
       this.parseExpression(instr)
       instr.push(binaryInstruction('+'))
-      return
+    } else {
+      this.parseMemberOfExpression(instr)
     }
 
-    this.parseMemberOfExpression(instr)
+    return true
   }
 
   parseArrayItem(instr) {
@@ -303,6 +323,8 @@ export class Lexer {
     if (!this.accept(TBRACKET, '{')) return
 
     let keyValuePairCount = 0
+
+    if (!this.hasNextToken()) this.err("Unexpected end of object: missing \"}\"")
 
     if (!this.accept(TBRACKET, '}') && this.hasNextToken()) {
 
@@ -353,7 +375,9 @@ export class Lexer {
       const exprInstr = []
 
       this.parseExpressions(exprInstr)
+
       this.expect(TPAREN, ')')
+
       instr.push(new Instruction(IEXPR, exprInstr))
 
     } else {
@@ -449,12 +473,12 @@ export class Lexer {
 
       } else {
         // TODO: Destructuring
-        return this.err('Expected variable for assignment but got '+varName.type)
+        return this.err('Expected variable for assignment but got '+varName.type+':'+varName.value)
       }
 
       const varValue = []
 
-      this.parseArray(varValue, true) // afterAssign = true
+      this.parseExpression(varValue, true) // afterAssign = true
 
       instr.push(new Instruction(IEXPR, varValue))
 

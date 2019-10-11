@@ -13,5 +13,5 @@ test('assignment', it => {
   const is = eva(it)
 
   is(`a = {} a.b = 'hi' a `, { b: 'hi' })
-  is(`a=[1] b=[2] b` , [2])
+  is(`a=[1] b=[2] b`, [2])
 })

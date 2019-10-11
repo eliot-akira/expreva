@@ -208,31 +208,30 @@ export class Tokenizer {
     const startPos = this.pos
     let i = startPos
     let hasLetter = false
+
     for (; i < this.source.length; i++) {
       let c = this.source.charAt(i)
-      if (c.toUpperCase() === c.toLowerCase()) {
-        if (i === this.pos && (c === '$' || c === '_')) {
-          if (c === '_') {
-            hasLetter = true
-          }
-          continue
-        }
-        else if (i === this.pos || !hasLetter || (c !== '_' && (c < '0' || c > '9'))) {
-          break
-        }
-      } else {
+      if (c.toUpperCase() !== c.toLowerCase() ||  c.charCodeAt(0) > 127) {
         hasLetter = true
+        continue
+      }
+      // First character
+      if (i === this.pos && (c < '0' || c > '9')) {
+        hasLetter = true
+        continue
+      }
+      if (i === this.pos || !hasLetter || (c !== '_' && (c < '0' || c > '9'))) {
+        break
       }
     }
-    if (hasLetter) {
 
-      const str = this.source.substring(startPos, i)
-      this.current = this.newToken(TNAME, str)
-      this.pos += str.length
+    if (!hasLetter) return false
 
-      return true
-    }
-    return false
+    const str = this.source.substring(startPos, i)
+    this.current = this.newToken(TNAME, str)
+    this.pos += str.length
+
+    return true
   }
 
   isWhitespaceChar(c) {
