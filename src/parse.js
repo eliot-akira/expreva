@@ -174,29 +174,11 @@ export class Parser {
     this.parseNextStatement(instr)
   }
 
-  parseExpression(instr, isAfterAssign) {
-
+  parseExpression(instr) {
     if (this.parseArray(instr)) return
-
-    const isAfterObject = this.parseObject(instr)
-
+    this.parseObject(instr)
     if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
-
-    if (!isAfterAssign) {
-      this.parseAssignment(instr)
-      return
-    }
-
-    const includeNextExpression = isAfterObject
-      // Include in current expression only what comes after an object
-      ? this.nextToken.type!==TNAME && this.nextToken.type!==TBRACKET
-      : true
-
-    if (includeNextExpression) {
-      this.parseConditionalExpression(instr)
-    }
-
-    this.parseAnonymousFunction(instr)
+    this.parseAssignment(instr)
   }
 
   parseNextStatement(instr) {
@@ -231,11 +213,11 @@ export class Parser {
     if (!this.accept(TPAREN, '(')) return false
     if (this.accept(TPAREN, ')')) return true // Empty is valid
 
+    // Possible argument list for an anomymous function
+
     this.parseExpressions(instr)
 
     if (this.accept(TPAREN, ')')) return true
-
-    // Possible argument list for an anomymous function
 
     const expr = instr.pop()
     const exprInstr = [expr]
@@ -262,9 +244,7 @@ export class Parser {
     }
 
     instr.push(new Instruction(IEXPR, exprInstr))
-
     this.parseAnonymousFunction(instr)
-
     return true
   }
 
@@ -370,14 +350,10 @@ export class Parser {
 
     } else if (this.accept(TPAREN, '(')) {
 
-      // Expression as key
-
       const exprInstr = []
 
       this.parseExpressions(exprInstr)
-
       this.expect(TPAREN, ')')
-
       instr.push(new Instruction(IEXPR, exprInstr))
 
     } else {
@@ -414,7 +390,11 @@ export class Parser {
       argCount = 1
       instr.push(new Instruction(IVARNAME, arg.value))
     } else if (arg.type===IEXPR) {
+
       // Args gathered by parseAtom
+
+      // TODO: Add support for defaults (x = 0) and spread operator (...x)
+
       argCount = arg.value.length
       for (const varName of arg.value) {
         instr.push(new Instruction(IVARNAME, varName.value))
@@ -434,10 +414,7 @@ export class Parser {
 
     while (this.accept(TOP, '=')) {
 
-      // Assignment types
-
       let varName = instr.pop()
-
       if (!varName) this.err('Expected variable for assignment but got '+varName)
 
       if (varName.type === IVAR) {
@@ -446,7 +423,7 @@ export class Parser {
 
       } else if (varName.type === IMEMBER) {
 
-        // var.member.member..
+        // var.member
 
         const varWithMembers = [
           new Instruction(IMEMBER, varName.value)
@@ -467,8 +444,8 @@ export class Parser {
           return this.err('Expected variable with members for assignment but got '+(!prevInstr ? 'undefined' : prevInstr.type))
         }
 
+        // Expected order
         varWithMembers.reverse()
-
         instr.push(new Instruction(IVARNAME_MEMBER, varWithMembers))
 
       } else {
@@ -478,12 +455,30 @@ export class Parser {
 
       const varValue = []
 
-      this.parseExpression(varValue, true) // afterAssign = true
-
+      this.parseExpressionAfterAssignment(varValue)
       instr.push(new Instruction(IEXPR, varValue))
-
       instr.push(binaryInstruction('='))
     }
+  }
+
+  parseExpressionAfterAssignment(instr) {
+
+    // Like parseExpression, but doesn't call parseAssignment again
+    // Also handles end of object
+
+    if (this.parseArray(instr)) return
+
+    const isAfterObject = this.parseObject(instr)
+
+    if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
+
+    // Include in current expression only what comes after an object
+    if (isAfterObject && (
+      this.nextToken.type===TNAME || this.nextToken.type===TBRACKET
+    )) return
+
+    this.parseConditionalExpression(instr)
+    this.parseAnonymousFunction(instr)
   }
 
   parseConditionalExpression(instr) {
@@ -707,34 +702,43 @@ export class Parser {
       const isAnonFunc = this.check(TOP, '=>')
 
       if (hasVar && !isAnonFunc) {
+
         // -> x
+
         instr.push(new Instruction(IFUNAPPLY, varName))
-      } else {
-        const exprInstr = []
-
-        if (hasVar && isAnonFunc) {
-          // -> x =>
-          let argCount = 1
-          const funcInstr = []
-
-          this.expect(TOP, '=>')
-          this.parseExpression(funcInstr)
-
-          exprInstr.push(new Instruction(IVARNAME, varName))
-          exprInstr.push(new Instruction(IEXPR, funcInstr))
-          exprInstr.push(new Instruction(IFUNDEFANON, argCount))
-        } else {
-          // -> (..)
-          this.restore()
-
-          this.parseWrappedExpression(exprInstr)
-          if (this.check(TOP, '=>')) {
-            this.parseAnonymousFunction(exprInstr)
-          }
-        }
-        instr.push(new Instruction(IFUNAPPLY, new Instruction(IEXPR, exprInstr)))
+        this.parseFunctionCall(instr, true)
+        continue
       }
-      // -> x()
+
+      const exprInstr = []
+
+      if (hasVar && isAnonFunc) {
+
+        // -> x =>
+
+        let argCount = 1
+        const funcInstr = []
+
+        this.expect(TOP, '=>')
+        this.parseExpression(funcInstr)
+
+        exprInstr.push(new Instruction(IVARNAME, varName))
+        exprInstr.push(new Instruction(IEXPR, funcInstr))
+        exprInstr.push(new Instruction(IFUNDEFANON, argCount))
+
+      } else {
+
+        // -> (..)
+
+        this.restore()
+
+        this.parseWrappedExpression(exprInstr)
+        if (this.check(TOP, '=>')) {
+          this.parseAnonymousFunction(exprInstr)
+        }
+      }
+
+      instr.push(new Instruction(IFUNAPPLY, new Instruction(IEXPR, exprInstr)))
       this.parseFunctionCall(instr, true)
     }
   }
