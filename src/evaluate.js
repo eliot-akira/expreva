@@ -21,12 +21,16 @@ import {
   IENDSTATEMENT,
   IEXPREVAL
 } from './instruction'
+import { unaryOps, binaryOps, ternaryOps, functions, constants } from './functions/builtIns'
 
 function err(arg) {
+
+  // TODO: getCoordinates
+
   throw new Error(arg)
 }
 
-export default function evaluate(instrs, expr, scope = {}) {
+export default function evaluate(instrs, globalScope = {}, localScope = {}) {
 
   if (typeof instrs==='undefined') return instrs
 
@@ -35,21 +39,23 @@ export default function evaluate(instrs, expr, scope = {}) {
   }
 
   const stack = []
-  const functionContext = {
-    global: expr, // { scope, tokens, parser, functions, ... }
-    local: { scope }
+  const context = {
+    global: { scope: globalScope },
+    local: { scope: localScope }
   }
 
   function callWithContext(f, args) {
-    return f.apply(functionContext, args)
+    return f.apply(context, args)
   }
 
   function findVariable(name) {
-    return name==='global' ? functionContext[name].scope
-      : name==='local' ? functionContext[name].scope
-        : typeof scope[name]!=='undefined' ? scope[name]
-          : typeof expr.scope[name]!=='undefined' ? expr.scope[name]
-            : expr.functions[name]
+    return (
+      name==='global' ? globalScope
+        : name==='local' ? localScope
+          : typeof localScope[name]!=='undefined' ? localScope[name]
+            : typeof globalScope[name]!=='undefined' ? globalScope[name]
+              : functions[name]
+    )
   }
 
   let f, n1, n2, n3
@@ -87,7 +93,7 @@ export default function evaluate(instrs, expr, scope = {}) {
 
     case IEXPR:
       // Expression - Defer evaluation
-      stack.push(createExpressionEvaluator(instr, expr, scope))
+      stack.push(createExpressionEvaluator(instr, globalScope, localScope))
       break
 
     case IENDSTATEMENT:
@@ -99,7 +105,7 @@ export default function evaluate(instrs, expr, scope = {}) {
 
       if (instr.value==='return') return resolveExpression(n1)
 
-      f = expr.unaryOps[instr.value]
+      f = unaryOps[instr.value]
       stack.push(f(resolveExpression(n1)))
       break
 
@@ -109,22 +115,22 @@ export default function evaluate(instrs, expr, scope = {}) {
       n1 = stack.pop()
 
       if (instr.value === 'and' || instr.value === '&&') {
-        stack.push(n1 ? !!evaluate(n2, expr, scope) : false)
+        stack.push(n1 ? !!evaluate(n2, globalScope, localScope) : false)
         break
       }
       if (instr.value === 'or' || instr.value === '||') {
-        stack.push(n1 ? true : !!evaluate(n2, expr, scope))
+        stack.push(n1 ? true : !!evaluate(n2, globalScope, localScope))
         break
       }
       if (instr.value !== '=') {
-        f = expr.binaryOps[instr.value]
+        f = binaryOps[instr.value]
         stack.push(callWithContext(f, [resolveExpression(n1), resolveExpression(n2)]))
         break
       }
 
       // Assignment: variable name, member, destructure array/object
 
-      f = expr.binaryOps[instr.value]
+      f = binaryOps[instr.value]
 
       if (typeof n1==='string') {
         stack.push(callWithContext(f, [n1, resolveExpression(n2)]))
@@ -151,9 +157,9 @@ export default function evaluate(instrs, expr, scope = {}) {
       n2 = stack.pop()
       n1 = stack.pop()
       if (instr.value === '?' || instr.value === 'if') {
-        stack.push(evaluate(n1 ? n2 : n3, expr, scope))
+        stack.push(evaluate(n1 ? n2 : n3, globalScope, localScope))
       } else {
-        f = expr.ternaryOps[instr.value]
+        f = ternaryOps[instr.value]
         stack.push(f(resolveExpression(n1), resolveExpression(n2), resolveExpression(n3)))
       }
       break
@@ -224,14 +230,12 @@ export default function evaluate(instrs, expr, scope = {}) {
         const f = function () {
 
           // Pass function arguments to local scope
-
-          const localScope = Object.assign({}, scope)
-
+          const functionScope = Object.assign({}, localScope)
           for (let i = 0, len = args.length; i < len; i++) {
-            localScope[args[i]] = arguments[i]
+            functionScope[args[i]] = arguments[i]
           }
 
-          return resolveExpression(n2, localScope)
+          return resolveExpression(n2, functionScope)
         }
 
         // f.name = n1
@@ -240,7 +244,7 @@ export default function evaluate(instrs, expr, scope = {}) {
           writable: false
         })
 
-        if (n1) scope[n1] = f // expr.functions
+        if (n1) localScope[n1] = f
 
         return f
       })())
@@ -250,7 +254,7 @@ export default function evaluate(instrs, expr, scope = {}) {
       n2 = instr.value
       n1 = stack.pop()
       f = typeof n2==='object' && n2.type===IEXPR
-        ? evaluate(n2.value, expr, scope)
+        ? evaluate(n2.value, globalScope, localScope)
         : findVariable(n2) // n2
 
       if (f instanceof Function) {
@@ -269,14 +273,14 @@ export default function evaluate(instrs, expr, scope = {}) {
       n2 = instr.value
       n1 = stack.pop()
       f = typeof n2==='object' && n2.type===IEXPR
-        ? evaluate(n2.value, expr, scope)
+        ? evaluate(n2.value, globalScope, localScope)
         : n2
 
       // Prevent climbing native prototype
       n3 = n1 && Object.prototype.hasOwnProperty.call(n1, f) ? n1[f] : undefined
 
       if (f instanceof Function) {
-        n3 = f(n1, expr, scope)
+        n3 = f(n1, globalScope, localScope)
       }
       stack.push(n3)
       break
@@ -295,24 +299,24 @@ function isExpressionEvaluator(n) {
   return n && n.type === IEXPREVAL
 }
 
-function createExpressionEvaluator(instr, expr, scope) {
+function createExpressionEvaluator(instr, globalScope, localScope) {
   if (isExpressionEvaluator(instr)) return instr
   return {
     type: IEXPREVAL,
     value: instr instanceof Function
       ? instr
-      : function (localScope) {
+      : function (functionScope) {
 
         // Unused for now
-        if (localScope===false) return instr.value
+        if (functionScope===false) return instr.value
 
-        return evaluate(instr.value, expr, localScope || scope)
+        return evaluate(instr.value, globalScope, functionScope || localScope)
       }
   }
 }
 
-function resolveExpression(n, localScope, ...args) {
-  return isExpressionEvaluator(n) ? n.value(localScope, ...args) : n
+function resolveExpression(n, functionScope, ...args) {
+  return isExpressionEvaluator(n) ? n.value(functionScope, ...args) : n
 }
 
 function assignVariableMember({

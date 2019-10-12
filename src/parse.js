@@ -7,7 +7,8 @@ import {
   TCOMMA,
   TNAME,
   TSEMICOLON,
-  TEOF
+  TEOF,
+  Token
 } from './token'
 import {
   Instruction,
@@ -30,20 +31,20 @@ import {
   unaryInstruction
 } from './instruction'
 import { contains } from './utils'
+import tokenize from './tokenize'
 
 const COMPARISON_OPERATORS = ['==', '!=', '<', '<=', '>=', '>', 'in']
 const ADD_SUB_OPERATORS = ['+', '-']
 const TERM_OPERATORS = ['*', '/', '%']
 
-export default function lex(parser, tokenizer) {
-  const lexer = new Lexer(parser, tokenizer)
-  return lexer //.parse()
+export default function parse(source) {
+  const parser = new Parser(tokenize(source))
+  return parser.parse(source)
 }
 
-export class Lexer {
+export class Parser {
 
-  constructor(parser, tokenizer) {
-    this.parser = parser
+  constructor(tokenizer) {
     this.tokens = tokenizer
     this.current = null
     this.nextToken = null
@@ -52,7 +53,10 @@ export class Lexer {
     this.savedNextToken = null
     this.instructions = []
     this.err = function (...args) {
-      throw new Error(args[0])
+      // Pass partially tokenized instructions on parse error
+      const e = new Error(args[0])
+      e.instructions = this.instructions
+      throw e
     }
   }
 
@@ -65,7 +69,6 @@ export class Lexer {
         this.instructions.push(new Instruction(IENDSTATEMENT))
       }
     }
-    // Store for reference even on parse error
     return this.instructions
   }
 
@@ -209,17 +212,14 @@ export class Lexer {
     if (this.accept(TPAREN, ')')) return this.err('Unexpected token ")"')
     if (this.accept(TBRACKET, '}')) return this.err('Unexpected token "}"')
     if (this.accept(TBRACKET, ']')) return this.err('Unexpected token "]"')
-    if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
     if (this.accept(TCOMMA)) return this.err('Unexpected token ","')
-    if (this.accept(TOP, '=')) return this.err('Unexpected token "="')
-    if (this.accept(TOP, '->')) return this.err('Unexpected token "->"')
-    if (this.accept(TOP, '?')) return this.err('Unexpected token "?"')
-    if (this.accept(TOP, ':')) return this.err('Unexpected token ":"')
+    this.validateEndOfExpression()
   }
 
   validateEndOfExpression() {
-    if (this.accept(TPAREN, '(')) return this.err('Unexpected token "("')
     if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
+    if (this.accept(TOP, '=')) return this.err('Unexpected token "="')
+    if (this.accept(TOP, '->')) return this.err('Unexpected token "->"')
     if (this.accept(TOP, '?')) return this.err('Unexpected token "?"')
     if (this.accept(TOP, ':')) return this.err('Unexpected token ":"')
   }

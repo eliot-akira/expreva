@@ -5,19 +5,16 @@ Based on [ndef.parser](http://www.undefined.ch/mparser/index.html) by Raphael Gr
 Ported to JavaScript and modified by Matthew Crumley (email@matthewcrumley.com, http://silentmatt.com/)
 */
 
-import tokenize from './tokenize'
-import lex from './lex'
+import parse from './parse'
 import evaluate from './evaluate'
-import * as builtIns from './functions/builtIns'
-//import expressionToString from './expression-to-string'
+//import compile from './compile'
 
 class Expreva {
 
-  constructor(scope = {}, options = {}) {
-    this.scope = scope
+  constructor(globalScope = {}, options = {}) {
+    this.scope = globalScope
     this.options = options
     this.instructions = []
-    Object.assign(this, builtIns)
   }
 
   parse(source) {
@@ -27,34 +24,32 @@ class Expreva {
       if (Array.isArray(source)) this.instructions = source
       return this
     }
-    const lexer = lex(this, tokenize(this, source))
 
     try {
-      this.instructions = lexer.parse()
+      this.instructions = parse(source)
     } catch(e) {
-      // Store incomplete instructions for reference
-      this.instructions = lexer.instructions
+      // Partially tokenized instructions for reference
+      this.instructions = e.instructions
       throw e
     }
 
     return this
   }
 
-  evaluate(source, scope, globalScope) {
-    this.scope = globalScope || this.scope
+  evaluate(source, scope) {
     this.parse(source)
-    return evaluate(this.instructions, this, scope)
+    return evaluate(this.instructions, this.scope, scope)
   }
 
   /*
   toString() {
-    return expressionToString(this.instrs, false)
+    return compile(this.instrs, false)
   }
   compile(param, scope) {
     const expr = this
     const f = new Function(param, // eslint-disable-line no-new-func
       'with(this.functions) with (this.ternaryOps) with (this.binaryOps) with (this.unaryOps) { return '
-      + expressionToString(
+      + compile(
         this.instrs, //this.simplify(scope).instrs,
         true
       )

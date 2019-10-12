@@ -12,6 +12,7 @@ import {
   TSEMICOLON
 } from './token'
 import { toUtf16 } from './utils'
+import { unaryOps, binaryOps, ternaryOps, constants } from './functions/builtIns'
 
 const ALPHANUMERIC_PATTERN = /^[0-9a-zA-Z]{1}$/i
 const CODEPOINT_CHAR_PATTERN = /^[0-9a-f]{1}$/i
@@ -19,25 +20,25 @@ const CODEPOINT_PATTERN = /^[0-9a-f]{4}$/i
 // TODO: Range of code point
 const EXTENDED_CODEPOINT_PATTERN = /^[0-9a-f]{5}$/i
 
-export default function tokenize(parser, source) {
-  return new Tokenizer(parser, source)
+export default function tokenize(source) {
+  return new Tokenizer(source)
 }
 
 export class Tokenizer {
 
-  constructor(parser, source) {
+  constructor(source) {
     this.pos = 0
     this.current = null
 
-    this.unaryOps = parser.unaryOps
-    this.binaryOps = parser.binaryOps
-    this.ternaryOps = parser.ternaryOps
-    this.consts = parser.consts
+    this.unaryOps = unaryOps
+    this.binaryOps = binaryOps
+    this.ternaryOps = ternaryOps
+    this.constants = constants
+
     this.source = source
 
     this.savedPosition = 0
     this.savedCurrent = null
-    this.options = parser.options
   }
 
   newToken(type, value, pos) {
@@ -89,7 +90,7 @@ export class Tokenizer {
       this.isComma() ||
       this.isSemicolon() ||
       this.isNamedOp() ||
-      this.isConst() ||
+      this.isConstant() ||
       this.isName()
     ) {
       return this.current
@@ -158,7 +159,7 @@ export class Tokenizer {
     return false
   }
 
-  isConst() {
+  isConstant() {
     let startPos = this.pos
     let i = startPos
     for (; i < this.source.length; i++) {
@@ -171,8 +172,8 @@ export class Tokenizer {
     }
     if (i > startPos) {
       const str = this.source.substring(startPos, i)
-      if (str in this.consts) {
-        this.current = this.newToken(TNUMBER, this.consts[str])
+      if (str in this.constants) {
+        this.current = this.newToken(TNUMBER, this.constants[str])
         this.pos += str.length
         return true
       }

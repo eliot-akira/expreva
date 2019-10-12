@@ -121,11 +121,7 @@ export const functions = {
 
 }
 
-export const consts = {
+export const constants = {
   'true': true,
-  'false': false,
-
-  // Externalize
-  E: Math.E,
-  PI: Math.PI,
+  'false': false
 }

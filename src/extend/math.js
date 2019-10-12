@@ -12,8 +12,10 @@ export default function extend(expreva) {
 
   Object.assign(expreva.scope, {
     math: {
+      e: Math.E,
+      pi: Math.PI,
       random: random,
-      isInteger,
+      is_integer: isInteger,
       min: Math.min,
       max: Math.max,
       sin: Math.sin,
@@ -28,6 +30,8 @@ export default function extend(expreva) {
       asinh: Math.asinh || asinh,
       acosh: Math.acosh || acosh,
       atanh: Math.atanh || atanh,
+      atan2: Math.atan2,
+      //gamma,
       sqrt: Math.sqrt,
       log: Math.log,
       ln: Math.log,
@@ -37,12 +41,10 @@ export default function extend(expreva) {
       ceil: Math.ceil,
       floor: Math.floor,
       round: Math.round,
-      roundTo,
+      round_to: roundTo,
       trunc: Math.trunc || trunc,
       hypot: Math.hypot || hypot,
       pow: Math.pow,
-      atan2: Math.atan2,
-      //gamma,
     }
   })
 }

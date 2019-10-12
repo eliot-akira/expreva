@@ -1,6 +1,15 @@
 
 // Array and object utilities
 
+export function size(s) {
+  if (typeof s==='undefined') return size
+  return Array.isArray(s)
+    ? s.length
+    : typeof s==='object'
+      ? Object.keys(s).length
+      : String(s).length
+}
+
 // map, filter, reduce
 
 export function map(fn, arr) {
