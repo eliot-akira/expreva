@@ -1,13 +1,12 @@
-const { parse, evaluate } = require('./common')
+const { parse, evaluate, Instruction } = require('./common')
 
 test('parse', it => {
 
-  let result = parse('1')
+  let instructions = parse('1')
 
-  it('parses', result)
-  it('returns instructions', result.instructions)
-  it('result can be evaluated', result.evaluate()===1)
-  it('instructions can be evaluated', evaluate(result.instructions)===1)
+  it('parses', instructions)
+  it('returns instructions', it.is(instructions, [new Instruction('INUMBER', 1)]))
+  it('instructions are evaluated', it.is(evaluate(instructions), 1))
 })
 
 test('parse invalid', it => {

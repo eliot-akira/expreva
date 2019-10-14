@@ -8,6 +8,8 @@ Ported to JavaScript and modified by Matthew Crumley (email@matthewcrumley.com, 
 import parse from './parse'
 import evaluate from './evaluate'
 //import compile from './compile'
+import { Instruction } from './instruction'
+import { Token } from './token'
 
 class Expreva {
 
@@ -33,12 +35,18 @@ class Expreva {
       throw e
     }
 
-    return this
+    return this.instructions
   }
 
   evaluate(source, scope) {
-    this.parse(source)
-    return evaluate(this.instructions, this.scope, scope)
+    const instr =
+      typeof source==='string'
+        ? this.parse(source)
+        : Array.isArray(source)
+          ? source
+          : ''
+    if (!instr) return
+    return evaluate(instr, this.scope, scope)
   }
 
   /*
@@ -67,5 +75,7 @@ const expreva = new Expreva
 expreva.create = function(scope, options) {
   return new Expreva(scope, options)
 }
+
+Object.assign(expreva, { Instruction, Token })
 
 export default expreva
