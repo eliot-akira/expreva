@@ -18,3 +18,4 @@ require('./statement')
 
 require('./function')
 require('./apply')
+require('./spread')

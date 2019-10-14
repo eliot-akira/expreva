@@ -23,6 +23,9 @@ import {
 } from './instruction'
 import { unaryOps, binaryOps, ternaryOps, functions, constants } from './functions/builtIns'
 
+// Used inside evaluate only
+const ISPREAD = 'ISPREAD'
+
 function err(arg) {
   // TODO: getCoordinates
   throw new Error(arg)
@@ -123,6 +126,9 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       if (instr.value==='return') {
         //return resolveExpression(n1)
         throw new ReturnJump(resolveExpression(n1))
+      } else if (instr.value==='...') {
+        stack.push({ type: ISPREAD, value: resolveExpression(n1) })
+        break
       }
 
       f = unaryOps[instr.value]
@@ -188,7 +194,12 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       let argCount = instr.value
       const args = []
       while (argCount-- > 0) {
-        args.unshift(resolveExpression(stack.pop()))
+        const arg = stack.pop()
+        if (typeof arg==='object' && arg.type===ISPREAD) {
+          args.unshift(...arg.value)
+        } else {
+          args.unshift(resolveExpression(arg))
+        }
       }
       stack.push(args)
     }  break
@@ -198,6 +209,10 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       const obj = {}
       while (keyValuePairCount-- > 0) {
         n2 = resolveExpression(stack.pop())
+        if (typeof n2==='object' && n2.type===ISPREAD) {
+          Object.assign(obj, n2.value)
+          continue
+        }
         n1 = resolveExpression(stack.pop())
         obj[n1] = n2
       }

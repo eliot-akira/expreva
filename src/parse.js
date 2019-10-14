@@ -286,11 +286,8 @@ export class Parser {
 
   parseSpreadOperator(instr) {
     if (!this.accept(TOP, '...')) return false
-
-    // TODO: Spread operator
-
-    // Variable or expression
-
+    this.parseExpression(instr)
+    instr.push(unaryInstruction('...'))
     return true
   }
 
@@ -466,7 +463,6 @@ export class Parser {
   parseAssignmentValue(instr) {
 
     // Like parseExpression, but doesn't call parseAssignment again
-    // Also handles end of object
 
     if (this.parseArray(instr)) return
 
@@ -474,6 +470,7 @@ export class Parser {
     if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
 
     // Include in current expression only what comes after an object
+    // TODO: Clarify and generalize logic
     if (isAfterObject && (
       this.nextToken.type===TNAME || this.nextToken.type===TBRACKET
     )) return
