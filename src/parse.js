@@ -28,6 +28,7 @@ import {
   IENDSTATEMENT,
 
   IOP1,
+  IOP2,
 
   ternaryInstruction,
   binaryInstruction,
@@ -216,8 +217,10 @@ export class Parser {
     if (this.accept(TPAREN, ')')) return true // Empty is valid
 
     // Possible argument list for an anomymous function
-
-    this.parseExpressions(instr)
+    const firstExpr = []
+    this.parseExpressions(firstExpr)
+    if (firstExpr.length===1) instr.push(...firstExpr)
+    else instr.push(new Instruction(IEXPR, firstExpr))
 
     if (this.accept(TPAREN, ')')) return true
 
@@ -377,8 +380,8 @@ export class Parser {
 
     if (!this.accept(TOP, '=>')) return false
 
+    // Function body
     const funcInstr = []
-
     this.parseExpression(funcInstr)
 
     // Function arguments
@@ -391,21 +394,27 @@ export class Parser {
       instr.push(new Instruction(IVARNAME, arg.value))
     } else if (arg.type===IEXPR) {
 
-      // Args gathered by parseAtom and parseInnerExpression
-      // TODO: Add support for defaults (x = 0)
+      // Args gathered by parseAtom and parseInnerExpressions
 
       argCount = arg.value.length
-      for (const varName of arg.value) {
 
-        // Spread operator (...x)
+      for (const varName of arg.value) {
         if (varName.type===IOP1 && varName.value==='...') {
+          // Spread operator (...x)
           instr.push(varName)
-          argCount--
+          argCount-- // Counts as 1 argument
+        } else if (varName.type===IOP2 && varName.value==='=') {
+
+          instr.push(new Instruction(IEXPR, [varName, instr.pop(), instr.pop()].reverse()))
+
+          argCount-=2 // Counts as 1 argument
+        } else if (varName.type===IEXPR) {
+          instr.push(varName)
         } else {
           instr.push(new Instruction(IVARNAME, varName.value))
         }
       }
-    }
+    } else this.err(`Unknown function argrument type`, arg.type+':'+arg.value)
 
     instr.push(new Instruction(IEXPR, funcInstr))
     instr.push(new Instruction(IFUNDEFANON, argCount))

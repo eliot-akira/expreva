@@ -22,7 +22,7 @@ import {
   IEXPREVAL
 } from '../instruction'
 import { unaryOps, binaryOps, ternaryOps, functions, constants } from '../functions/builtIns'
-import { err, ReturnJump, isSpreadOperator } from './utils'
+import { err, ReturnJump, isSpreadOperator, isExpressionEvaluator } from './utils'
 import createFunctionDefinition from './createFunctionDefinition'
 import assignVariableMember from './assignVariableMember'
 
@@ -173,7 +173,7 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       n2 = stack.pop()
       n1 = stack.pop()
       if (instr.value === '?' || instr.value === 'if') {
-        stack.push(resolveExpression(n1 ? n2 : n3))
+        stack.push(resolveExpression(resolveExpression(n1) ? n2 : n3))
       } else {
         f = ternaryOps[instr.value]
         stack.push(f(resolveExpression(n1), resolveExpression(n2), resolveExpression(n3)))
@@ -293,14 +293,11 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
   return n1 === -0 ? 0 : resolveExpression(n1) // eslint-disable-line no-compare-neg-zero
 }
 
-function isExpressionEvaluator(n) {
-  return n && n.type === IEXPREVAL
-}
-
 function createExpressionEvaluator(instr, globalScope, localScope) {
   if (isExpressionEvaluator(instr)) return instr
   return {
     type: IEXPREVAL,
+    instructions: instr.value,
     value: instr instanceof Function
       ? instr
       : function (functionScope) {

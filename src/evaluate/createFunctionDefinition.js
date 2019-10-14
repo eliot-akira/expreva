@@ -1,7 +1,8 @@
 import {
+  IVARNAME,
   IFUNDEFANON,
 } from '../instruction'
-import { err, ReturnJump, isSpreadOperator } from './utils'
+import { err, ReturnJump, isSpreadOperator, isExpressionEvaluator } from './utils'
 
 export default function createFunctionDefinition({
   stack,
@@ -24,7 +25,12 @@ export default function createFunctionDefinition({
 
   const f = function () {
 
-    const functionScope = assignArgumentsToLocalScope(args, arguments, localScope)
+    const functionScope = assignArgumentsToLocalScope({
+      expectedArgs: args,
+      givenArgs: arguments,
+      localScope,
+      resolveExpression
+    })
 
     // Catch return
     let value
@@ -49,7 +55,12 @@ export default function createFunctionDefinition({
   return f
 }
 
-function assignArgumentsToLocalScope(expectedArgs, givenArgs, localScope) {
+function assignArgumentsToLocalScope({
+  expectedArgs,
+  givenArgs,
+  localScope,
+  resolveExpression
+}) {
 
   const functionScope = Object.assign({}, localScope)
 
@@ -62,6 +73,22 @@ function assignArgumentsToLocalScope(expectedArgs, givenArgs, localScope) {
   while (givenArgIndex < expectedArgsLength) {
 
     const varName = expectedArgs[expectedArgIndex]
+    if (isExpressionEvaluator(varName)) {
+
+      // Default assignment
+      if (typeof givenArgs[givenArgIndex]==='undefined') {
+        resolveExpression(varName, functionScope)
+      } else if (varName.instructions) {
+        // Override default with given arg
+        const exprVarName = varName.instructions[0]
+        if (exprVarName && exprVarName.type===IVARNAME) {
+          functionScope[exprVarName.value] = givenArgs[givenArgIndex]
+        }
+      }
+      givenArgIndex++
+      expectedArgIndex++
+      continue
+    }
 
     if (!isSpreadOperator(varName)) {
       functionScope[varName] = givenArgs[givenArgIndex]

@@ -46,7 +46,7 @@ class Expreva {
           ? source
           : ''
     if (!instr) return
-    return evaluate(instr, this.scope, scope)
+    return evaluate(instr, scope || this.scope)
   }
 
   /*
