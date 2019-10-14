@@ -11,6 +11,8 @@ require('./arithmetic')
 require('./comparison')
 require('./conditional')
 
+require('./assignment')
+
 require('./list')
 require('./object')
 require('./member')
