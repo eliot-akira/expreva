@@ -470,112 +470,74 @@ export class Tokenizer {
     return true
   }
 
+  pushOperator(op) {
+    this.current = this.newToken(TOP, op)
+    this.pos += op.length
+    return true
+  }
+
   isOperator() {
-    let startPos = this.pos
+
     let c = this.source.charAt(this.pos)
     let nextC
+
     if (c === '%' || c === '^' || c === '?' || c === ':') {
-      this.current = this.newToken(TOP, c)
-    } else if (c === '+') {
-      nextC = this.source.charAt(this.pos + 1)
-      if (nextC === '+') {
-        this.current = this.newToken(TOP, '++')
-        this.pos++
-      } else if (nextC === '=') {
-        this.current = this.newToken(TOP, '+=')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, '+')
+      return this.pushOperator(c)
+    }
+
+    nextC = this.source.charAt(this.pos + 1)
+
+    if (c === '+') {
+      if (nextC === '+' || nextC === '=') return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+    if (c === '-') {
+      if (nextC === '-' || nextC === '=' || nextC === '>') return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+    if (c === '=') {
+      if (nextC === '=' || nextC === '>') return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+    if (c === '.') {
+      if (nextC === '.' && this.source.charAt(this.pos + 2) === '.') {
+        return this.pushOperator('...')
       }
-    } else if (c === '-') {
-      nextC = this.source.charAt(this.pos + 1)
-      if (nextC === '-') {
-        this.current = this.newToken(TOP, '--')
-        this.pos++
-      } else if (nextC === '=') {
-        this.current = this.newToken(TOP, '-=')
-        this.pos++
-      } else if (nextC === '>') {
-        this.current = this.newToken(TOP, '->')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, '-')
-      }
-    } else if (c === '=') {
-      nextC = this.source.charAt(this.pos + 1)
-      if (nextC === '=') {
-        this.current = this.newToken(TOP, '==')
-        this.pos++
-      } else if (nextC === '>') {
-        this.current = this.newToken(TOP, '=>')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, c)
-      }
-    } else if (c === '.') {
-      if (this.source.charAt(this.pos + 1) === '.'
-        && this.source.charAt(this.pos + 2) === '.'
-      ) {
-        this.current = this.newToken(TOP, '...')
-        this.pos+=2
-      } else {
-        this.current = this.newToken(TOP, '.')
-      }
-    } else if (c === '*') {
-      if (this.source.charAt(this.pos + 1) === '=') {
-        this.current = this.newToken(TOP, '*=')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, '*')
-      }
-    } else if (c === '/') {
-      if (this.source.charAt(this.pos + 1) === '=') {
-        this.current = this.newToken(TOP, '/=')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, '/')
-      }
-    } else if (c === '>') {
-      if (this.source.charAt(this.pos + 1) === '=') {
-        this.current = this.newToken(TOP, '>=')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, '>')
-      }
-    } else if (c === '<') {
-      if (this.source.charAt(this.pos + 1) === '=') {
-        this.current = this.newToken(TOP, '<=')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, '<')
-      }
-    } else if (c === '|') {
-      if (this.source.charAt(this.pos + 1) === '|') {
-        this.current = this.newToken(TOP, '||')
-        this.pos++
-      } else {
-        // Bit shift?
-        return false
-      }
-    } else if (c === '&') {
-      if (this.source.charAt(this.pos + 1) === '&') {
-        this.current = this.newToken(TOP, '&&')
-        this.pos++
-      } else {
-        // Bit shift?
-        return false
-      }
-    } else if (c === '!') {
-      if (this.source.charAt(this.pos + 1) === '=') {
-        this.current = this.newToken(TOP, '!=')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, c)
-      }
-    } else {
+      return this.pushOperator(c)
+    }
+
+    if (c === '*') {
+      if (nextC === '=') return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+    if (c === '/') {
+      if (nextC === '=')  return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+    if (c === '>') {
+      if (nextC === '=')  return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+    if (c === '<') {
+      if (nextC === '=')  return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+
+    if (c === '|') {
+      if (nextC === '|')  return this.pushOperator(c+nextC)
+      // Bit shift?
       return false
     }
-    this.pos++
-    return true
+    if (c === '&') {
+      if (nextC === '&') return this.pushOperator(c+nextC)
+      // Bit shift?
+      return false
+    }
+    if (c === '!') {
+      if (nextC === '=') return this.pushOperator(c+nextC)
+      return this.pushOperator(c)
+    }
+
+    return false
   }
 }
