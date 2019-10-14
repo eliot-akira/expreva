@@ -511,20 +511,20 @@ export class Tokenizer {
       return this.pushOperator(c)
     }
     if (c === '/') {
-      if (nextC === '=')  return this.pushOperator(c+nextC)
+      if (nextC === '=') return this.pushOperator(c+nextC)
       return this.pushOperator(c)
     }
     if (c === '>') {
-      if (nextC === '=')  return this.pushOperator(c+nextC)
+      if (nextC === '=') return this.pushOperator(c+nextC)
       return this.pushOperator(c)
     }
     if (c === '<') {
-      if (nextC === '=')  return this.pushOperator(c+nextC)
+      if (nextC === '=') return this.pushOperator(c+nextC)
       return this.pushOperator(c)
     }
 
     if (c === '|') {
-      if (nextC === '|')  return this.pushOperator(c+nextC)
+      if (nextC === '|') return this.pushOperator(c+nextC)
       // Bit shift?
       return false
     }

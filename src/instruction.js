@@ -17,6 +17,7 @@ export const IEXPR = 'IEXPR'
 export const IARRAY = 'IARRAY'
 export const IOBJECT = 'IOBJECT'
 export const IMEMBER = 'IMEMBER'
+export const ISPREAD = 'ISPREAD'
 
 export const IENDSTATEMENT = 'IENDSTATEMENT'
 export const IRETURN = 'IRETURN'

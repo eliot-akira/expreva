@@ -13,32 +13,21 @@ import {
   IFUNAPPLY,
 
   IEXPR,
-  IMEMBER,
-
   IARRAY,
   IOBJECT,
+  ISPREAD,
+  IMEMBER,
 
   IENDSTATEMENT,
   IEXPREVAL
-} from './instruction'
-import { unaryOps, binaryOps, ternaryOps, functions, constants } from './functions/builtIns'
+} from '../instruction'
+import { unaryOps, binaryOps, ternaryOps, functions, constants } from '../functions/builtIns'
+import { err, ReturnJump, isSpreadOperator } from './utils'
+import createFunctionDefinition from './createFunctionDefinition'
+import assignVariableMember from './assignVariableMember'
 
-// Used inside evaluate only
-const ISPREAD = 'ISPREAD'
-
-function err(arg) {
-  // TODO: getCoordinates
-  throw new Error(arg)
-}
-
-class ReturnJump {
-  constructor(value) {
-    this.value = value
-  }
-}
-
-export default function evaluateWithReturnCatch(instrs, globalScope = {}, localScope = {}) {
-  // Catch return
+export default function evaluateWithCatchReturn(instrs, globalScope = {}, localScope = {}) {
+  // Catch top-level return
   let value
   try {
     value = evaluate(instrs, globalScope, localScope)
@@ -124,10 +113,10 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       n1 = stack.pop()
 
       if (instr.value==='return') {
-        //return resolveExpression(n1)
+        // Jump back to try catch in function definition
         throw new ReturnJump(resolveExpression(n1))
       } else if (instr.value==='...') {
-        stack.push({ type: ISPREAD, value: resolveExpression(n1) })
+        stack.push({ type: ISPREAD, value: n1 }) // Defer calling resolveExpression
         break
       }
 
@@ -172,6 +161,7 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
         set: f,
         varMembers: n1.value,
         valueExpr: n2,
+        resolveExpression,
         callWithContext,
         findVariable
       })
@@ -195,8 +185,8 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       const args = []
       while (argCount-- > 0) {
         const arg = stack.pop()
-        if (typeof arg==='object' && arg.type===ISPREAD) {
-          args.unshift(...arg.value)
+        if (isSpreadOperator(arg)) {
+          args.unshift(...resolveExpression(arg.value))
         } else {
           args.unshift(resolveExpression(arg))
         }
@@ -209,8 +199,8 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       const obj = {}
       while (keyValuePairCount-- > 0) {
         n2 = resolveExpression(stack.pop())
-        if (typeof n2==='object' && n2.type===ISPREAD) {
-          Object.assign(obj, n2.value)
+        if (isSpreadOperator(n2)) {
+          Object.assign(obj, resolveExpression(n2.value))
           continue
         }
         n1 = resolveExpression(stack.pop())
@@ -249,52 +239,13 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
 
     case IFUNDEFANON:
     //case IFUNDEF:
-
-      // Function closure to keep references
-      stack.push((function () {
-
-        const n2 = stack.pop()
-        const args = []
-        let argCount = instr.value
-
-        while (argCount-- > 0) {
-          args.unshift(stack.pop())
-        }
-
-        // Variable name
-        const n1 = type===IFUNDEFANON ? '' : stack.pop()
-
-        const f = function () {
-
-          // Pass function arguments to local scope
-          const functionScope = Object.assign({}, localScope)
-          for (let i = 0, len = args.length; i < len; i++) {
-            functionScope[args[i]] = arguments[i]
-          }
-
-          // Catch return
-          let value
-          try {
-            value = resolveExpression(n2, functionScope)
-          } catch(e) {
-            if (e instanceof ReturnJump) {
-              value = e.value
-            } else throw e
-          }
-
-          return value
-        }
-
-        // f.name = n1
-        Object.defineProperty(f, 'name', {
-          value: n1 || 'anonymous',
-          writable: false
-        })
-
-        if (n1) localScope[n1] = f
-
-        return f
-      })())
+      stack.push(createFunctionDefinition({
+        stack,
+        functionType: instr.type,
+        argCount: instr.value,
+        localScope,
+        resolveExpression
+      }))
       break
 
     case IFUNAPPLY:
@@ -364,71 +315,4 @@ function createExpressionEvaluator(instr, globalScope, localScope) {
 
 function resolveExpression(n, functionScope, ...args) {
   return isExpressionEvaluator(n) ? n.value(functionScope, ...args) : n
-}
-
-function assignVariableMember({
-  stack, instrs,
-  set, varMembers, valueExpr,
-  callWithContext,
-  findVariable
-}) {
-
-  // Find root variable
-
-  let pos = 0
-  let currentInstr = varMembers[pos]
-  let rootVar, parentValue, currentValue
-
-  const tailPos = varMembers.length - 1
-  const varName = currentInstr.value
-
-  if (currentInstr && currentInstr.type!==IVARNAME) {
-    return err('Variable expected for member assignment')
-  }
-
-  rootVar = parentValue = findVariable(varName)
-
-  if (typeof rootVar==='undefined') {
-    return err('Variable not found for member assignment: '+varName)
-  }
-
-  if (typeof rootVar!=='object') {
-    return err('Variable member assignment requires array or object as root: '+varName)
-  }
-
-  // Reach into members
-
-  const memberNames = []
-
-  while (++pos && (currentInstr = varMembers[pos]) && currentInstr.type===IMEMBER) {
-
-    const memberName = currentInstr.value
-
-    memberNames.push(memberName)
-
-    currentValue = parentValue[memberName]
-
-    if (pos===tailPos) {
-
-      parentValue[memberName] = resolveExpression(valueExpr)
-
-      // Assign the whole object back to variable
-      callWithContext(set, [varName, rootVar])
-
-      // Result of member assignment
-      stack.push(parentValue[memberName])
-
-      return true
-    }
-
-    if (typeof currentValue==='undefined') {
-      return err('Variable member assignment requires array or object as member: '
-        +varName+(memberNames.length ? '.'+(memberNames.join('.')) : '')
-      )
-    }
-
-    parentValue = currentValue
-  }
-
-  return err('Variable member not found for assignment: '+[varName, ...memberNames].join('.'))
 }

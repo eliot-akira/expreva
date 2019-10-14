@@ -26,6 +26,9 @@ import {
   IARRAY,
   IOBJECT,
   IENDSTATEMENT,
+
+  IOP1,
+
   ternaryInstruction,
   binaryInstruction,
   unaryInstruction
@@ -164,6 +167,9 @@ export class Parser {
 
 
   parseExpressions(instr) {
+
+    if (this.parseSpreadOperator(instr)) return
+
     this.validateStartOfExpression()
     this.parseExpression(instr)
     this.validateEndOfExpression()
@@ -227,7 +233,7 @@ export class Parser {
 
     if (!this.hasNextToken()) this.err("Unexpected end of expression")
 
-    while (this.hasNextToken()) {
+    do {
 
       if (this.accept(TPAREN, ')')) break
 
@@ -237,7 +243,7 @@ export class Parser {
         exprInstr.push(new Instruction(IENDSTATEMENT))
         this.parseExpressions(exprInstr)
       }
-    }
+    } while (this.hasNextToken())
 
     instr.push(new Instruction(IEXPR, exprInstr))
     this.parseAnonymousFunction(instr)
@@ -385,13 +391,19 @@ export class Parser {
       instr.push(new Instruction(IVARNAME, arg.value))
     } else if (arg.type===IEXPR) {
 
-      // Args gathered by parseAtom
-
-      // TODO: Add support for defaults (x = 0) and spread operator (...x)
+      // Args gathered by parseAtom and parseInnerExpression
+      // TODO: Add support for defaults (x = 0)
 
       argCount = arg.value.length
       for (const varName of arg.value) {
-        instr.push(new Instruction(IVARNAME, varName.value))
+
+        // Spread operator (...x)
+        if (varName.type===IOP1 && varName.value==='...') {
+          instr.push(varName)
+          argCount--
+        } else {
+          instr.push(new Instruction(IVARNAME, varName.value))
+        }
       }
     }
 
