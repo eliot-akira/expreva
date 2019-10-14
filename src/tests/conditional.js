@@ -25,6 +25,5 @@ test('if', it => {
   is(`if 3->(x=>x*x)==9 then if true then 'YES' else 'NO'`, 'YES')
   is(`if 3->(x=>x*x)==9 then if false then 'YES' else 'NO'`, 'NO')
 
-  // TODO: Not should get following expression
-  is(`if not 1 > 2 then true else false`, true)
+  is(`if not 1 > 2 then 'YES' else 'NO'`, 'YES')
 })

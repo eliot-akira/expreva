@@ -17,6 +17,4 @@ test('apply to anonymous function', it => {
   is('3->(x => x)->(x => x)', 3)
   is('3->(x => x)->(x => x * x)', 9)
   is('3->(x => x * x)->(x => x * x)', 81)
-
-  //is('3->x => x * x->x => x * x)', 81)
 })

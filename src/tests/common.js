@@ -1,7 +1,15 @@
 const expreva = require('../../build/expreva')
 
 // Assertion helper
-const eva = it => (k, v) => it(k, it.is(evaluate(k), v))
+const eva = it => (k, v) => {
+  let r
+  try {
+    r = evaluate(k)
+  } catch(e) {
+    r = e.message
+  }
+  it(k, it.is(r, v))
+}
 
 const parse = expreva.parse.bind(expreva)
 const evaluate = expreva.evaluate.bind(expreva)
