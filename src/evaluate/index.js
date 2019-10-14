@@ -104,7 +104,6 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       // Expression - Defer evaluation
       stack.push(createExpressionEvaluator(instr, globalScope, localScope))
       break
-
     case IENDSTATEMENT:
       stack.pop()
       break
@@ -115,8 +114,11 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       if (instr.value==='return') {
         // Jump back to try catch in function definition
         throw new ReturnJump(resolveExpression(n1))
-      } else if (instr.value==='...') {
-        stack.push({ type: ISPREAD, value: n1 }) // Defer calling resolveExpression
+      }
+
+      if (instr.value==='...') {
+        // Defer resolving expression until actual spread
+        stack.push(typeof n1==='undefined' ? n1 :  { type: ISPREAD, value: n1 })
         break
       }
 

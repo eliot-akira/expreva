@@ -97,8 +97,8 @@ function assignArgumentsToLocalScope({
       continue
     }
 
-    const spreadNum = givenArgsLength - givenArgIndex - 1
-    const rangeEnd = givenArgIndex+spreadNum
+    const spreadNum = givenArgsLength - (expectedArgsLength - expectedArgIndex) //givenArgIndex - 1
+    const rangeEnd = givenArgIndex + spreadNum
 
     functionScope[varName.value] = Array.prototype.slice.call(givenArgs, givenArgIndex, rangeEnd)
 
