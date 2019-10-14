@@ -23,10 +23,21 @@ if (!file) {
   return
 }
 
-// Run file
+// Reloadable library
 
 const cwd = process.cwd()
-const expreva = require('../build/expreva')
+const libPath = path.resolve(path.join(__dirname, '..', 'build', 'expreva.js'))
+let expreva
+
+const loadExpreva = () => {
+  delete require.cache[libPath]
+  expreva = require(libPath)
+  return expreva
+}
+
+loadExpreva()
+
+// Log
 
 const log = o => console.log(
   typeof o!=='object' ? o
@@ -41,6 +52,8 @@ function renderInstructions(instr) {
   }
   return str
 }
+
+// Run file
 
 let mode = options.p ? 'parse' : 'eval'
 
@@ -77,7 +90,7 @@ const reader = readline.createInterface({
   prompt: ''
 })
 
-console.log('Press enter to load file and run again, ".p" for parse mode, ".e" for eval mode, "." to exit')
+console.log('Press enter to run file again, ".p" for parse mode, ".e" for eval mode, "." to exit')
 
 reader.on('line', str => {
   if (str==='.') {
@@ -88,6 +101,8 @@ reader.on('line', str => {
     mode = 'parse'
   } else if (str==='.e') {
     mode = 'eval'
+  } else if (str==='.r') {
+    loadExpreva()
   }
   runFile(file)
 })
