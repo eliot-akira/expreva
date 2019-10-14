@@ -414,51 +414,18 @@ export class Parser {
       this.parseAssignmentTarget(instr)
 
       const varValue = []
-      this.parseExpressionAfterAssignment(varValue)
+      this.parseAssignmentValue(varValue)
       instr.push(new Instruction(IEXPR, varValue))
 
       instr.push(binaryInstruction('='))
     }
 
-    this.parseAugmentedAssignment(instr)
-  }
-
-  parseAugmentedAssignment(instr) {
-
-    if (!this.check(TOP, token => ['+=', '-=', '*=', '/=', '++', '--'].indexOf(token.value)>=0)) return
-
-    const tokenValue = this.nextToken.value
-
-    this.accept(TOP)
-
-    // Target before parseAssignmentTarget
-    const targetInstr = instr.pop()
-    instr.push(targetInstr)
-
-    this.parseAssignmentTarget(instr)
-
-    let valueInstr
-
-    if (tokenValue=='++' || tokenValue=='--') {
-      valueInstr = new Instruction(INUMBER, 1)
-    } else {
-      const varValue = []
-      this.parseExpressionAfterAssignment(varValue)
-      valueInstr = new Instruction(IEXPR, varValue)
-    }
-
-    instr.push(new Instruction(IEXPR, [
-      targetInstr,
-      valueInstr,
-      binaryInstruction(tokenValue[0])
-    ]))
-
-    instr.push(binaryInstruction('='))
+    this.parseCompoundAssignment(instr)
   }
 
   parseAssignmentTarget(instr) {
 
-    let varName = instr.pop()
+    const varName = instr.pop()
     if (!varName) this.err('Expected variable for assignment but got '+varName)
 
     if (varName.type === IVAR) {
@@ -467,7 +434,7 @@ export class Parser {
 
     } else if (varName.type === IMEMBER) {
 
-      // var.member
+      // var.member - unshift, not push, for expected order
 
       const varWithMembers = [
         new Instruction(IMEMBER, varName.value)
@@ -476,20 +443,18 @@ export class Parser {
       let prevInstr
       prevInstr = instr.pop()
       while (prevInstr && prevInstr.type === IMEMBER) {
-        varWithMembers.push(new Instruction(IMEMBER, prevInstr.value))
+        varWithMembers.unshift(new Instruction(IMEMBER, prevInstr.value))
         prevInstr = instr.pop()
       }
 
       if (prevInstr && prevInstr.type === IVAR) {
-        varWithMembers.push(new Instruction(IVARNAME, prevInstr.value))
+        varWithMembers.unshift(new Instruction(IVARNAME, prevInstr.value))
       } else if (prevInstr && prevInstr.type === IEXPR) {
-        varWithMembers.push(new Instruction(prevInstr, prevInstr.value))
+        varWithMembers.unshift(new Instruction(prevInstr, prevInstr.value))
       } else {
         return this.err('Expected variable with members for assignment but got '+(!prevInstr ? 'undefined' : prevInstr.type))
       }
 
-      // Expected order
-      varWithMembers.reverse()
       instr.push(new Instruction(IVARNAME_MEMBER, varWithMembers))
 
     } else {
@@ -498,7 +463,7 @@ export class Parser {
     }
   }
 
-  parseExpressionAfterAssignment(instr) {
+  parseAssignmentValue(instr) {
 
     // Like parseExpression, but doesn't call parseAssignment again
     // Also handles end of object
@@ -516,6 +481,74 @@ export class Parser {
     this.parseConditionalExpression(instr)
     this.parseAnonymousFunction(instr)
   }
+
+
+  parseCompoundAssignment(instr) {
+
+    if (!this.check(TOP, token => ['+=', '-=', '*=', '/=', '++', '--'].indexOf(token.value)>=0)) return
+
+    const tokenValue = this.nextToken.value
+
+    this.accept(TOP)
+
+    // Extract target to use for value
+    const targetInstr = []
+    this.parseCompoundAssignmentTarget(instr, targetInstr)
+
+    // Parse original target
+    instr.push(...targetInstr)
+    this.parseAssignmentTarget(instr)
+
+    let valueInstr
+
+    if (tokenValue=='++' || tokenValue=='--') {
+      valueInstr = new Instruction(INUMBER, 1)
+    } else {
+      const varValue = []
+      this.parseAssignmentValue(varValue)
+      valueInstr = new Instruction(IEXPR, varValue)
+    }
+
+    // x = x (op) (value)
+
+    instr.push(new Instruction(IEXPR, [
+      ...targetInstr,
+      valueInstr,
+      binaryInstruction(tokenValue[0])
+    ]))
+
+    instr.push(binaryInstruction('='))
+  }
+
+  parseCompoundAssignmentTarget(instr, targetInstr = []) {
+
+    let varName = instr.pop()
+    if (!varName) return // Let parseAssignmentTarget handle error
+
+    if (varName.type === IVAR) {
+      targetInstr.push(varName)
+      return
+    }
+
+    if (varName.type !== IMEMBER) {
+      return this.err('Expected variable or member for compound assignment but got '+varName.type+':'+varName.value)
+    }
+
+    // var.member - unshift, not push, for expected order
+
+    do {
+      targetInstr.unshift(varName)
+      varName = instr.pop()
+    } while(varName.type === IMEMBER)
+
+    if (varName.type === IVAR) {
+      targetInstr.unshift(varName)
+      return
+    }
+
+    this.err('Expected variable with members for compound assignment but got '+varName.type+':'+varName.value)
+  }
+
 
   parseConditionalExpression(instr) {
 
