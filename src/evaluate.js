@@ -24,13 +24,30 @@ import {
 import { unaryOps, binaryOps, ternaryOps, functions, constants } from './functions/builtIns'
 
 function err(arg) {
-
   // TODO: getCoordinates
-
   throw new Error(arg)
 }
 
-export default function evaluate(instrs, globalScope = {}, localScope = {}) {
+class ReturnJump {
+  constructor(value) {
+    this.value = value
+  }
+}
+
+export default function evaluateWithReturnCatch(instrs, globalScope = {}, localScope = {}) {
+  // Catch return
+  let value
+  try {
+    value = evaluate(instrs, globalScope, localScope)
+  } catch(e) {
+    if (e instanceof ReturnJump) {
+      value = e.value
+    } else throw e
+  }
+  return value
+}
+
+function evaluate(instrs, globalScope = {}, localScope = {}) {
 
   if (typeof instrs==='undefined') return instrs
 
@@ -77,7 +94,7 @@ export default function evaluate(instrs, globalScope = {}, localScope = {}) {
     // IARRAY_DESTRUCTURE:
     // IOBJECT_DESTRUCTURE:
 
-      // Push the instr itself for assignment types
+      // Push the instruction itself for assignment types
       stack.push(instr)
       break
 
@@ -103,7 +120,10 @@ export default function evaluate(instrs, globalScope = {}, localScope = {}) {
     case IOP1:
       n1 = stack.pop()
 
-      if (instr.value==='return') return resolveExpression(n1)
+      if (instr.value==='return') {
+        //return resolveExpression(n1)
+        throw new ReturnJump(resolveExpression(n1))
+      }
 
       f = unaryOps[instr.value]
       stack.push(f(resolveExpression(n1)))
@@ -115,11 +135,11 @@ export default function evaluate(instrs, globalScope = {}, localScope = {}) {
       n1 = stack.pop()
 
       if (instr.value === 'and' || instr.value === '&&') {
-        stack.push(n1 ? !!evaluate(n2, globalScope, localScope) : false)
+        stack.push(n1 ? !!resolveExpression(n2) : false)
         break
       }
       if (instr.value === 'or' || instr.value === '||') {
-        stack.push(n1 ? true : !!evaluate(n2, globalScope, localScope))
+        stack.push(n1 ? true : !!resolveExpression(n2))
         break
       }
       if (instr.value !== '=') {
@@ -157,7 +177,7 @@ export default function evaluate(instrs, globalScope = {}, localScope = {}) {
       n2 = stack.pop()
       n1 = stack.pop()
       if (instr.value === '?' || instr.value === 'if') {
-        stack.push(evaluate(n1 ? n2 : n3, globalScope, localScope))
+        stack.push(resolveExpression(n1 ? n2 : n3))
       } else {
         f = ternaryOps[instr.value]
         stack.push(f(resolveExpression(n1), resolveExpression(n2), resolveExpression(n3)))
@@ -196,8 +216,10 @@ export default function evaluate(instrs, globalScope = {}, localScope = {}) {
       n1 = undefined
 
       if (isExpressionEvaluator(f)) {
+
         f = resolveExpression(f)
         n1 = f instanceof Function ? callWithContext(f, args) : f
+
       } else if (f instanceof Function) {
         n1 = callWithContext(f, args)
       } else {
@@ -235,7 +257,17 @@ export default function evaluate(instrs, globalScope = {}, localScope = {}) {
             functionScope[args[i]] = arguments[i]
           }
 
-          return resolveExpression(n2, functionScope)
+          // Catch return
+          let value
+          try {
+            value = resolveExpression(n2, functionScope)
+          } catch(e) {
+            if (e instanceof ReturnJump) {
+              value = e.value
+            } else throw e
+          }
+
+          return value
         }
 
         // f.name = n1
