@@ -176,8 +176,8 @@ export class Parser {
 
   parseExpression(instr) {
     if (this.parseArray(instr)) return
-    this.parseObject(instr)
-    if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
+    if (this.parseObject(instr)) return
+    if (this.isEndOfExpression()) return //  || this.parseNextStatement(instr)
     this.parseAssignment(instr)
   }
 
@@ -379,6 +379,7 @@ export class Parser {
     if (!this.accept(TOP, '=>')) return false
 
     const funcInstr = []
+
     this.parseExpression(funcInstr)
 
     // Function arguments
@@ -469,7 +470,6 @@ export class Parser {
     if (this.parseArray(instr)) return
 
     const isAfterObject = this.parseObject(instr)
-
     if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
 
     // Include in current expression only what comes after an object
@@ -483,8 +483,7 @@ export class Parser {
 
   parseConditionalExpression(instr) {
 
-    this.parseOr(instr)
-    this.parseIf(instr)
+    if (!this.parseIf(instr)) this.parseOr(instr)
 
     while (this.accept(TOP, '?')) {
 
@@ -502,9 +501,15 @@ export class Parser {
   }
 
   parseIf(instr) {
-    while (this.accept(TOP, 'if')) {
+
+    if (!this.accept(TOP, 'if')) return false
+
+    do {
+
       this.parseOr(instr)
-      this.expect(TOP, 'then')
+
+      // Optional
+      this.accept(TOP, 'then')
 
       const trueBranch = []
       const falseBranch = []
@@ -516,7 +521,9 @@ export class Parser {
       instr.push(new Instruction(IEXPR, trueBranch))
       instr.push(new Instruction(IEXPR, falseBranch))
       instr.push(ternaryInstruction('if'))
-    }
+    } while (this.accept(TOP, 'if'))
+
+    return true
   }
 
   parseOr(instr) {

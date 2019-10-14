@@ -17,6 +17,6 @@ export class Token {
     this.index = index
   }
   toString() {
-    return this.type + ': ' + this.value
+    return this.type + ':' + this.value
   }
 }
