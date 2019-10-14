@@ -28,7 +28,10 @@ if (!file) {
 const cwd = process.cwd()
 const expreva = require('../build/expreva')
 
-const log = o => console.log(util.inspect(o, { showHidden: false, depth: null, colors: true }))
+const log = o => console.log(
+  typeof o!=='object' ? o
+    : util.inspect(o, { showHidden: false, depth: null, colors: true })
+)
 
 function renderInstructions(instr) {
   var str = ''
