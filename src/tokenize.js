@@ -193,9 +193,7 @@ export class Tokenizer {
       }
     }
     if (i > startPos) {
-
       const str = this.source.substring(startPos, i)
-
       if (str in this.unaryOps || str in this.binaryOps || str in this.ternaryOps) {
         this.current = this.newToken(TOP, str)
         this.pos += str.length
@@ -476,18 +474,66 @@ export class Tokenizer {
     let startPos = this.pos
     let c = this.source.charAt(this.pos)
     let nextC
-    if (c === '+' || c === '*' || c === '/' || c === '%' || c === '^'
-      || c === '.' || c === '?' || c === ':'
-    ) {
+    if (c === '%' || c === '^' || c === '?' || c === ':') {
       this.current = this.newToken(TOP, c)
-    } else if (c === '∙' || c === '•') {
-      this.current = this.newToken(TOP, '*')
+    } else if (c === '+') {
+      nextC = this.source.charAt(this.pos + 1)
+      if (nextC === '+') {
+        this.current = this.newToken(TOP, '++')
+        this.pos++
+      } else if (nextC === '=') {
+        this.current = this.newToken(TOP, '+=')
+        this.pos++
+      } else {
+        this.current = this.newToken(TOP, '+')
+      }
     } else if (c === '-') {
-      if (this.source.charAt(this.pos + 1) === '>') {
+      nextC = this.source.charAt(this.pos + 1)
+      if (nextC === '-') {
+        this.current = this.newToken(TOP, '--')
+        this.pos++
+      } else if (nextC === '=') {
+        this.current = this.newToken(TOP, '-=')
+        this.pos++
+      } else if (nextC === '>') {
         this.current = this.newToken(TOP, '->')
         this.pos++
       } else {
         this.current = this.newToken(TOP, '-')
+      }
+    } else if (c === '=') {
+      nextC = this.source.charAt(this.pos + 1)
+      if (nextC === '=') {
+        this.current = this.newToken(TOP, '==')
+        this.pos++
+      } else if (nextC === '>') {
+        this.current = this.newToken(TOP, '=>')
+        this.pos++
+      } else {
+        this.current = this.newToken(TOP, c)
+      }
+    } else if (c === '.') {
+      if (this.source.charAt(this.pos + 1) === '.'
+        && this.source.charAt(this.pos + 2) === '.'
+      ) {
+        this.current = this.newToken(TOP, '...')
+        this.pos+=2
+      } else {
+        this.current = this.newToken(TOP, '.')
+      }
+    } else if (c === '*') {
+      if (this.source.charAt(this.pos + 1) === '=') {
+        this.current = this.newToken(TOP, '*=')
+        this.pos++
+      } else {
+        this.current = this.newToken(TOP, '*')
+      }
+    } else if (c === '/') {
+      if (this.source.charAt(this.pos + 1) === '=') {
+        this.current = this.newToken(TOP, '/=')
+        this.pos++
+      } else {
+        this.current = this.newToken(TOP, '/')
       }
     } else if (c === '>') {
       if (this.source.charAt(this.pos + 1) === '=') {
@@ -519,17 +565,6 @@ export class Tokenizer {
         // Bit shift?
         return false
       }
-    } else if (c === '=') {
-      nextC = this.source.charAt(this.pos + 1)
-      if (nextC === '=') {
-        this.current = this.newToken(TOP, '==')
-        this.pos++
-      } else if (nextC === '>') {
-        this.current = this.newToken(TOP, '=>')
-        this.pos++
-      } else {
-        this.current = this.newToken(TOP, c)
-      }
     } else if (c === '!') {
       if (this.source.charAt(this.pos + 1) === '=') {
         this.current = this.newToken(TOP, '!=')
@@ -541,7 +576,6 @@ export class Tokenizer {
       return false
     }
     this.pos++
-
     return true
   }
 }

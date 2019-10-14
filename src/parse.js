@@ -117,10 +117,6 @@ export class Parser {
     return false
   }
 
-  acceptPrefixOperator() {
-    return this.accept(TOP, (token) => token.value in this.tokens.unaryOps)
-  }
-
   expect(type, value) {
 
     if (this.accept(type, value)) return true
@@ -161,7 +157,7 @@ export class Parser {
     if (this.accept(TEOF)) return
 
     if (!this.parseInnerExpressions(instr)) {
-      //this.err('Unexpected ' + this.nextToken)
+      this.err('Unexpected ' + this.nextToken)
       return
     }
   }
@@ -415,50 +411,90 @@ export class Parser {
 
     while (this.accept(TOP, '=')) {
 
-      let varName = instr.pop()
-      if (!varName) this.err('Expected variable for assignment but got '+varName)
-
-      if (varName.type === IVAR) {
-
-        instr.push(new Instruction(IVARNAME, varName.value))
-
-      } else if (varName.type === IMEMBER) {
-
-        // var.member
-
-        const varWithMembers = [
-          new Instruction(IMEMBER, varName.value)
-        ]
-
-        let prevInstr
-        prevInstr = instr.pop()
-        while (prevInstr && prevInstr.type === IMEMBER) {
-          varWithMembers.push(new Instruction(IMEMBER, prevInstr.value))
-          prevInstr = instr.pop()
-        }
-
-        if (prevInstr && prevInstr.type === IVAR) {
-          varWithMembers.push(new Instruction(IVARNAME, prevInstr.value))
-        } else if (prevInstr && prevInstr.type === IEXPR) {
-          varWithMembers.push(new Instruction(prevInstr, prevInstr.value))
-        } else {
-          return this.err('Expected variable with members for assignment but got '+(!prevInstr ? 'undefined' : prevInstr.type))
-        }
-
-        // Expected order
-        varWithMembers.reverse()
-        instr.push(new Instruction(IVARNAME_MEMBER, varWithMembers))
-
-      } else {
-        // TODO: Destructuring
-        return this.err('Expected variable for assignment but got '+varName.type+':'+varName.value)
-      }
+      this.parseAssignmentTarget(instr)
 
       const varValue = []
-
       this.parseExpressionAfterAssignment(varValue)
       instr.push(new Instruction(IEXPR, varValue))
+
       instr.push(binaryInstruction('='))
+    }
+
+    this.parseAugmentedAssignment(instr)
+  }
+
+  parseAugmentedAssignment(instr) {
+
+    if (!this.check(TOP, token => ['+=', '-=', '*=', '/=', '++', '--'].indexOf(token.value)>=0)) return
+
+    const tokenValue = this.nextToken.value
+
+    this.accept(TOP)
+
+    // Target before parseAssignmentTarget
+    const targetInstr = instr.pop()
+    instr.push(targetInstr)
+
+    this.parseAssignmentTarget(instr)
+
+    let valueInstr
+
+    if (tokenValue=='++' || tokenValue=='--') {
+      valueInstr = new Instruction(INUMBER, 1)
+    } else {
+      const varValue = []
+      this.parseExpressionAfterAssignment(varValue)
+      valueInstr = new Instruction(IEXPR, varValue)
+    }
+
+    instr.push(new Instruction(IEXPR, [
+      targetInstr,
+      valueInstr,
+      binaryInstruction(tokenValue[0])
+    ]))
+
+    instr.push(binaryInstruction('='))
+  }
+
+  parseAssignmentTarget(instr) {
+
+    let varName = instr.pop()
+    if (!varName) this.err('Expected variable for assignment but got '+varName)
+
+    if (varName.type === IVAR) {
+
+      instr.push(new Instruction(IVARNAME, varName.value))
+
+    } else if (varName.type === IMEMBER) {
+
+      // var.member
+
+      const varWithMembers = [
+        new Instruction(IMEMBER, varName.value)
+      ]
+
+      let prevInstr
+      prevInstr = instr.pop()
+      while (prevInstr && prevInstr.type === IMEMBER) {
+        varWithMembers.push(new Instruction(IMEMBER, prevInstr.value))
+        prevInstr = instr.pop()
+      }
+
+      if (prevInstr && prevInstr.type === IVAR) {
+        varWithMembers.push(new Instruction(IVARNAME, prevInstr.value))
+      } else if (prevInstr && prevInstr.type === IEXPR) {
+        varWithMembers.push(new Instruction(prevInstr, prevInstr.value))
+      } else {
+        return this.err('Expected variable with members for assignment but got '+(!prevInstr ? 'undefined' : prevInstr.type))
+      }
+
+      // Expected order
+      varWithMembers.reverse()
+      instr.push(new Instruction(IVARNAME_MEMBER, varWithMembers))
+
+    } else {
+      // TODO: Destructuring
+      return this.err('Expected variable for assignment but got '+varName.type+':'+varName.value)
     }
   }
 
@@ -586,6 +622,10 @@ export class Parser {
     }
   }
 
+  acceptPrefixOperator() {
+    return this.accept(TOP, (token) => token.value in this.tokens.unaryOps)
+  }
+
   parseFactor(instr) {
     this.save()
     if (this.acceptPrefixOperator()) {
@@ -619,7 +659,6 @@ export class Parser {
       instr.push(unaryInstruction('!'))
     }
   }
-
 
   parseFunctionCall(instr, withMember = false) {
 
