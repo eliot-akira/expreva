@@ -80,23 +80,23 @@ export class Tokenizer {
     }
     if (this.isWhitespace() || this.isComment()) {
       return this.next()
-    } else if (
-      this.isRadixInteger() ||
-      this.isNumber() ||
-      this.isOperator() ||
-      this.isString() ||
-      this.isParen() ||
-      this.isBracket() ||
-      this.isComma() ||
-      this.isSemicolon() ||
-      this.isNamedOp() ||
-      this.isConstant() ||
-      this.isName()
+    }
+    if (
+      this.isRadixInteger()
+      || this.isNumber()
+      || this.isOperator()
+      || this.isString()
+      || this.isParen()
+      || this.isBracket()
+      || this.isComma()
+      || this.isSemicolon()
+      || this.isNamedOp()
+      || this.isConstant()
+      || this.isName()
     ) {
       return this.current
-    } else {
-      this.parseError('Unknown character "' + this.source.charAt(this.pos) + '"')
     }
+    this.parseError('Unknown character "' + this.source.charAt(this.pos) + '"')
   }
 
   isString() {

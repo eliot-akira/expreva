@@ -56,7 +56,16 @@ function renderInstructions(instr) {
 // Run file
 
 let mode = options.p ? 'parse' : 'eval'
-
+const runSource = source => {
+  // Parse or evaluate
+  try {
+    mode==='parse'
+      ? console.log(renderInstructions(expreva.parse(source)))
+      : log(expreva.evaluate(source, {}))
+  } catch(e) {
+    if (typeof e!=='undefined') console.log(e.message || e)
+  }
+}
 const runFile = file => {
 
   let source
@@ -67,22 +76,13 @@ const runFile = file => {
     console.log(e)
     process.exit(1)
   }
-  try {
-
-    // Parse or evaluate
-
-    mode==='parse'
-      ? console.log(renderInstructions(expreva.parse(source)))
-      : log(expreva.evaluate(source, {}))
-  } catch(e) {
-    console.log(e.message || e)
-  }
+  runSource(source)
 }
 
 runFile(file)
 if (!options.w) process.exit()
 
-// Watch mode
+// Watch mode - TODO: Combine with REPL
 
 const reader = readline.createInterface({
   input: process.stdin,
@@ -90,19 +90,23 @@ const reader = readline.createInterface({
   prompt: ''
 })
 
-console.log('Press enter to run file again, ".p" for parse mode, ".e" for eval mode, "." to exit')
+console.log('Enter "." to run file again, ".p" for parse mode, ".e" for eval mode, ".." to exit')
 
 reader.on('line', str => {
-  if (str==='.') {
+  if (str==='..') {
     reader.close()
     process.exit()
   }
   if (str==='.p') {
     mode = 'parse'
+    runFile(file)
   } else if (str==='.e') {
     mode = 'eval'
+    runFile(file)
   } else if (str==='.r') {
     loadExpreva()
-  }
-  runFile(file)
+    console.log('Expreva reloaded')
+  } else if (str==='.') {
+    runFile(file)
+  } else runSource(str)
 })

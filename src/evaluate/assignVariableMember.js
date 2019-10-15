@@ -48,21 +48,16 @@ export default function assignVariableMember({
     currentValue = parentValue[memberName]
 
     if (pos===tailPos) {
-
       parentValue[memberName] = resolveExpression(valueExpr)
-
       // Assign the whole object back to variable
       callWithContext(set, [varName, rootVar])
-
-      // Result of member assignment
       stack.push(parentValue[memberName])
-
       return true
     }
 
     if (typeof currentValue==='undefined') {
       return err('Variable member assignment requires array or object as member: '
-        +varName+(memberNames.length ? '.'+(memberNames.join('.')) : '')
+        +[varName, ...memberNames].join('.')
       )
     }
 

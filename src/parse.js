@@ -40,6 +40,7 @@ import tokenize from './tokenize'
 const COMPARISON_OPERATORS = ['==', '!=', '<', '<=', '>=', '>', 'in']
 const ADD_SUB_OPERATORS = ['+', '-']
 const TERM_OPERATORS = ['*', '/', '%']
+const COMPOUND_ASSINGMENT_OPERATORS = ['+=', '-=', '*=', '/=', '++', '--']
 
 export default function parse(source) {
   const parser = new Parser(tokenize(source))
@@ -56,12 +57,6 @@ export class Parser {
     this.savedCurrent = null
     this.savedNextToken = null
     this.instructions = []
-    this.err = function (...args) {
-      // Pass partially tokenized instructions on parse error
-      const e = new Error(args[0])
-      e.instructions = this.instructions
-      throw e
-    }
   }
 
   // Start here
@@ -76,6 +71,16 @@ export class Parser {
     return this.instructions
   }
 
+  err(message) {
+    const coords = this.tokens.getCoordinates()
+    const e = new Error(
+      `Parse error on line ${coords.line}, column ${coords.column}: ${message}`
+    )
+    // Pass partially tokenized instructions on parse error
+    e.instructions = this.instructions
+    throw e
+  }
+
   next() {
     this.current = this.nextToken
     return (this.nextToken = this.tokens.next())
@@ -84,13 +89,14 @@ export class Parser {
   tokenMatches(token, value) {
     if (typeof value === 'undefined') {
       return true
-    } else if (Array.isArray(value)) {
-      return contains(value, token.value)
-    } else if (typeof value === 'function') {
-      return value(token)
-    } else {
-      return token.value === value
     }
+    if (Array.isArray(value)) {
+      return contains(value, token.value)
+    }
+    if (typeof value === 'function') {
+      return value(token)
+    }
+    return token.value === value
   }
 
   save() {
@@ -122,24 +128,38 @@ export class Parser {
   }
 
   expect(type, value) {
-
     if (this.accept(type, value)) return true
-
-    const coords = this.tokens.getCoordinates()
     return this.err(
-      `Parse error on line ${coords.line}, column ${coords.column}: Expected ${
+      `Expected ${
         type + (value ? ` "${value}"` : '')
       } but got ${
         (this.nextToken && (this.nextToken.type + (
           this.nextToken.value ? ` "${this.nextToken.value}"` : ''))) || 'undefined'
-      }`)
+      }`
+    )
+  }
+
+  validateStartOfExpression() {
+    if (this.accept(TPAREN, ')')) return this.err('Unexpected token ")"')
+    if (this.accept(TBRACKET, '}')) return this.err('Unexpected token "}"')
+    if (this.accept(TBRACKET, ']')) return this.err('Unexpected token "]"')
+    if (this.accept(TCOMMA)) return this.err('Unexpected token ","')
+    this.validateEndOfExpression()
+  }
+
+  validateEndOfExpression() {
+    if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
+    if (this.accept(TOP, '=')) return this.err('Unexpected token "="')
+    if (this.accept(TOP, '->')) return this.err('Unexpected token "->"')
+    if (this.accept(TOP, '?')) return this.err('Unexpected token "?"')
+    if (this.accept(TOP, ':')) return this.err('Unexpected token ":"')
   }
 
   isEndOfExpression() {
     return !this.hasNextToken()
-    || this.nextToken.type===TSEMICOLON
-    || this.nextToken.type===TCOMMA
-    || (this.nextToken.type === TPAREN && this.nextToken.value === ')')
+      || this.nextToken.type===TSEMICOLON
+      || this.nextToken.type===TCOMMA
+      || (this.nextToken.type === TPAREN && this.nextToken.value === ')')
       || (this.nextToken.type === TBRACKET &&
         (this.nextToken.value === '}' || this.nextToken.value === ']')
       )
@@ -166,11 +186,8 @@ export class Parser {
     }
   }
 
-
   parseExpressions(instr) {
-
     if (this.parseSpreadOperator(instr)) return
-
     this.validateStartOfExpression()
     this.parseExpression(instr)
     this.validateEndOfExpression()
@@ -191,22 +208,6 @@ export class Parser {
       this.parseExpressions(instr)
     }
     return true
-  }
-
-  validateStartOfExpression() {
-    if (this.accept(TPAREN, ')')) return this.err('Unexpected token ")"')
-    if (this.accept(TBRACKET, '}')) return this.err('Unexpected token "}"')
-    if (this.accept(TBRACKET, ']')) return this.err('Unexpected token "]"')
-    if (this.accept(TCOMMA)) return this.err('Unexpected token ","')
-    this.validateEndOfExpression()
-  }
-
-  validateEndOfExpression() {
-    if (this.accept(TOP, '.')) return this.err('Unexpected token "."')
-    if (this.accept(TOP, '=')) return this.err('Unexpected token "="')
-    if (this.accept(TOP, '->')) return this.err('Unexpected token "->"')
-    if (this.accept(TOP, '?')) return this.err('Unexpected token "?"')
-    if (this.accept(TOP, ':')) return this.err('Unexpected token ":"')
   }
 
   parseInnerExpressions(instr) {
@@ -255,22 +256,18 @@ export class Parser {
 
 
   parseArray(instr) {
-
     if (!this.accept(TBRACKET, '[')) return false
+    if (!this.hasNextToken()) this.err("Unexpected end of array: missing \"]\"")
 
     let argCount = 0
 
-    if (!this.hasNextToken()) this.err("Unexpected end of array: missing \"]\"")
-
     if (!this.accept(TBRACKET, ']') && this.hasNextToken()) {
-
-      this.parseArrayItem(instr)
-      argCount++
-
-      while (this.accept(TCOMMA)) {
-        this.parseArrayItem(instr)
+      do {
+        if (!this.parseSpreadOperator(instr)) {
+          this.parseExpressions(instr)
+        }
         argCount++
-      }
+      } while (this.accept(TCOMMA))
 
       this.expect(TBRACKET, ']')
     }
@@ -287,12 +284,6 @@ export class Parser {
     return true
   }
 
-  parseArrayItem(instr) {
-    if (!this.parseSpreadOperator(instr)) {
-      this.parseExpressions(instr)
-    }
-  }
-
   parseSpreadOperator(instr) {
     if (!this.accept(TOP, '...')) return false
     this.parseExpression(instr)
@@ -301,28 +292,24 @@ export class Parser {
   }
 
   parseObject(instr) {
-
     if (!this.accept(TBRACKET, '{')) return
+    if (!this.hasNextToken()) this.err("Unexpected end of object: missing \"}\"")
 
     let keyValuePairCount = 0
-
-    if (!this.hasNextToken()) this.err("Unexpected end of object: missing \"}\"")
 
     if (!this.accept(TBRACKET, '}') && this.hasNextToken()) {
 
       const pairs = []
       do {
         const pair = []
-        if (this.parseKeyValuePair(pair)) {
-          keyValuePairCount++
-          pairs.push(pair)
-        }
+        if (!this.parseKeyValuePair(pair)) continue
+        keyValuePairCount++
+        pairs.unshift(pair) // Expected order to key/value pairs
       } while (this.accept(TCOMMA))
 
-      // Expected order to key/value pairs
-      pairs.reverse().forEach(function(pair) {
+      for (const pair of pairs) {
         instr.push(...pair)
-      })
+      }
 
       this.expect(TBRACKET, '}')
     }
@@ -341,7 +328,6 @@ export class Parser {
   }
 
   parseKeyValuePair(instr) {
-
     if (this.parseSpreadOperator(instr)) return true
 
     // Key
@@ -369,7 +355,7 @@ export class Parser {
       return true
     }
 
-    // { variable }
+    // { var } becomes { var: var }
     const key = instr.pop()
     instr.push(key, new Instruction(IVAR, key.value))
     return true
@@ -400,14 +386,19 @@ export class Parser {
 
       for (const varName of arg.value) {
         if (varName.type===IOP1 && varName.value==='...') {
+
           // Spread operator (...x)
+
           instr.push(varName)
           argCount-- // Counts as 1 argument
+
         } else if (varName.type===IOP2 && varName.value==='=') {
 
-          instr.push(new Instruction(IEXPR, [varName, instr.pop(), instr.pop()].reverse()))
+          // Default Assignment
 
+          instr.push(new Instruction(IEXPR, [varName, instr.pop(), instr.pop()].reverse()))
           argCount-=2 // Counts as 1 argument
+
         } else if (varName.type===IEXPR) {
           instr.push(varName)
         } else {
@@ -500,13 +491,14 @@ export class Parser {
     this.parseAnonymousFunction(instr)
   }
 
-
   parseCompoundAssignment(instr) {
 
-    if (!this.check(TOP, token => ['+=', '-=', '*=', '/=', '++', '--'].indexOf(token.value)>=0)) return
+    if (!this.check(TOP,
+      token => COMPOUND_ASSINGMENT_OPERATORS.indexOf(token.value)>=0
+    )) return
 
+    // Store token and advance
     const tokenValue = this.nextToken.value
-
     this.accept(TOP)
 
     // Extract target to use for value
@@ -569,9 +561,7 @@ export class Parser {
 
 
   parseConditionalExpression(instr) {
-
     if (!this.parseIf(instr)) this.parseOr(instr)
-
     while (this.accept(TOP, '?')) {
 
       const trueBranch = []
@@ -588,9 +578,7 @@ export class Parser {
   }
 
   parseIf(instr) {
-
     if (!this.accept(TOP, 'if')) return false
-
     do {
 
       this.parseOr(instr)
@@ -779,7 +767,6 @@ export class Parser {
       this.parseFunctionCall(instr, true)
     }
   }
-
 
   parseWrappedExpression(instr) {
     if (!this.accept(TPAREN, '(')) return false

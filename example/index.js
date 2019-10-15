@@ -8,18 +8,13 @@ var $textarea = $('.section-expression textarea')
 var $runAction = $('.evaluate-button')
 
 var $instructions = $('.section-instructions code')
-// var $parsed = $('.expreva-parsed code')
-// var $parsedError = $('.expreva-parsed-error')
 var $result = $('.section-result code')
-var $resultError = $('.section-error error')
-
-// See https://github.com/silentmatt/expr-eval
+var $resultError = $('.section-error code')
+var $resultErrorContainer = $('.section-error')
 
 var scope = {}
 
 $textarea.focus()
-//$doc.tabIndex = '0'
-//$doc.focus()
 
 console.log('Expreva', expreva)
 if (window.location.hostname==='localhost') {
@@ -72,66 +67,64 @@ function renderInstructions(instr) {
   return str
 }
 
+function clearError() {
+  clearText($resultError)
+  $resultErrorContainer.classList.add('hide')
+}
+
+function setError(msg) {
+  setText($resultError, msg)
+  $resultErrorContainer.classList.remove('hide')
+}
+
 var lastExpression
 
 function render() {
 
-  //$textarea.focus()
   var expression = $textarea.value
   if (expression===lastExpression) return
 
   lastExpression = expression
 
-  var parsed, result
+  var instructions, result
   try {
 
-    parsed = expreva.parse(expression, scope)
+    instructions = expreva.parse(expression, scope)
 
-    //if (typeof parsed==='undefined' || !(parsed.instructions)) return
-    if (typeof parsed==='undefined' || parsed==='') {
+    if (!instructions) {
       log('Empty result after parse')
-      clearText($instructions, /*$parsed, $parsedError,*/ $result, $resultError)
+      clearText($instructions, $result, $resultError)
       return
     }
 
-    $instructions.innerText = renderInstructions(parsed.instructions) //JSON.stringify(parsed.instructions || [], null, 2)
+    $instructions.innerText = renderInstructions(instructions)
 
-    if (parsed instanceof Error) {
-      log('Parse error', parsed)
-      clearText(/*$parsed, */$result /*, $resultError*/)
-      //setText($parsedError, parsed.toString())
-      setText($resultError, parsed.toString())
-      return
-    }
-
-    log('Parsed', parsed)
-
-    // setText($parsed, parsed.toString())
-    clearText($resultError)
+    log('Parsed', instructions)
+    clearError()
 
     try {
 
-      result = parsed.evaluate(scope)
+      result = expreva.evaluate(instructions, scope)
 
       log('Result', result)
 
       setText($result, stringify(result))
-      clearText($resultError)
+      clearError()
 
     } catch(e) {
       log('Evaluate error', e)
       clearText($result)
-      setText($resultError, e.message)
+      setError(e.message)
     }
   } catch(e) {
-    log('Parse error', e)
-    // setText($parsedError, 'Error: '+e.message)
-    setText($resultError, e.message)
 
-    // Instructions parsed before error
+    log('Parse error', e)
+    setError(e.message)
+
+    // Partially parsed Instructions
     $instructions.innerText = renderInstructions(expreva.instructions)
 
-    clearText(/*$instructions, /*$parsed,*/ $result /*, $resultError*/)
+    clearText($result)
   }
 }
 
@@ -147,9 +140,7 @@ var debounce = function(fn, duration) {
 var scheduleRender = debounce(render, 50)
 
 $runAction.addEventListener('click', function() {
-//$textarea.addEventListener('keyup', function(e) {
   scheduleRender()
-  //render()
 })
 
 function renderExpr(el) {
