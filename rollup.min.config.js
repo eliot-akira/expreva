@@ -1,4 +1,4 @@
-import { uglify } from 'rollup-plugin-uglify'
+import { terser } from 'rollup-plugin-terser'
 import config from './rollup.config'
 
 export default config.map(({ input, output, external, watch, plugins }) => {
@@ -9,8 +9,10 @@ export default config.map(({ input, output, external, watch, plugins }) => {
     output,
     plugins: [
       ...plugins,
-      uglify({
-        keep_fnames: true
+      terser({
+        compress: true,
+        mangle: true,
+        keep_fnames: true // For built-in and library function names
       })
     ]
   }

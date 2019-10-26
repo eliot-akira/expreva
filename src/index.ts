@@ -10,21 +10,25 @@ import evaluate from './evaluate'
 //import compile from './compile'
 import { Instruction } from './instruction'
 import { Token } from './token'
+import { Source, Scope, Options, Instructions } from './types'
 
 class Expreva {
 
-  constructor(globalScope = {}, options = {}) {
-    this.scope = globalScope
+  scope: Scope
+  options: Options
+  instructions: Instructions
+
+  constructor(scope: Scope = {}, options: Options = {}) {
+    this.scope = scope
     this.options = options
     this.instructions = []
   }
 
-  parse(source) {
+  parse(source: Source | Instructions): Instructions {
 
-    if (typeof source !== 'string') {
-      // Already parsed
-      if (Array.isArray(source)) this.instructions = source
-      return this
+    // Already parsed
+    if (Array.isArray(source)) {
+      return this.instructions = source
     }
 
     try {
@@ -38,15 +42,11 @@ class Expreva {
     return this.instructions
   }
 
-  evaluate(source, scope) {
-    const instr =
-      typeof source==='string'
-        ? this.parse(source)
-        : Array.isArray(source)
-          ? source
-          : ''
-    if (!instr) return
-    return evaluate(instr, scope || this.scope)
+  evaluate(source: Source | Instructions, scope: Scope): any {
+    return evaluate(
+      typeof source==='string' ? this.parse(source) : source,
+      scope || this.scope
+    )
   }
 
   /*
@@ -70,12 +70,18 @@ class Expreva {
 */
 }
 
-const expreva = new Expreva
-
-expreva.create = function(scope, options) {
-  return new Expreva(scope, options)
+const expreva = new Expreva() as Expreva & {
+  create: (scope: Scope, options: Options) => Expreva
+  Instruction: Instruction
+  Token: Token
 }
 
-Object.assign(expreva, { Instruction, Token })
+Object.assign(expreva, {
+  create(scope: Scope = {}, options: Options = {}) {
+    return new Expreva(scope, options)
+  },
+  Instruction,
+  Token
+})
 
 export default expreva

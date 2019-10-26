@@ -17,7 +17,7 @@ import {
 } from './instruction'
 
 export default function expressionToString(instrs, toJS) {
-  let nstack = []
+  let nstack: string[] = []
   let n1, n2, n3
   let f, argCount, args
   for (let i = 0; i < instrs.length; i++) {

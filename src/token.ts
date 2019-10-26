@@ -10,12 +10,21 @@ export const TCOLON = 'TCOLON'
 export const TELLIPSIS = 'TELLIPSIS'
 export const TSEMICOLON = 'TSEMICOLON'
 
+const tokens = {
+  TEOF, TOP, TNAME, TNUMBER, TSTRING, TPAREN, TBRACKET, TCOMMA, TCOLON, TELLIPSIS, TSEMICOLON
+} as const
+
+export type TokenType = keyof typeof tokens
+export type TokenValue = string | number
+
 export class Token {
-  constructor(type, value, index) {
-    this.type = type
-    this.value = value
-    this.index = index
-  }
+
+  constructor(
+    public type: TokenType,
+    public value: TokenValue,
+    public index: number
+  ) {}
+
   toString() {
     return this.type + ':' + this.value
   }

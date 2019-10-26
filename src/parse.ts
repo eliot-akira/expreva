@@ -1,4 +1,5 @@
 import {
+  Token, TokenType, TokenValue,
   TOP,
   TNUMBER,
   TSTRING,
@@ -8,7 +9,6 @@ import {
   TNAME,
   TSEMICOLON,
   TEOF,
-  Token
 } from './token'
 import {
   Instruction,
@@ -35,27 +35,44 @@ import {
   unaryInstruction
 } from './instruction'
 import { contains } from './utils'
-import tokenize from './tokenize'
+import tokenize, { Tokenizer } from './tokenize'
+
+import { Source, Instructions } from './types'
 
 const COMPARISON_OPERATORS = ['==', '!=', '<', '<=', '>=', '>', 'in']
 const ADD_SUB_OPERATORS = ['+', '-']
 const TERM_OPERATORS = ['*', '/', '%']
 const COMPOUND_ASSINGMENT_OPERATORS = ['+=', '-=', '*=', '/=', '++', '--']
 
-export default function parse(source) {
+type TokenChecker = (token: Token) => boolean
+type TokenValueChecker = TokenValue | TokenValue[] | TokenChecker
+
+const EmptyToken = {
+  type: null,
+  value: null
+}
+
+export default function parse(source: Source) {
   const parser = new Parser(tokenize(source))
-  return parser.parse(source)
+  return parser.parse()
 }
 
 export class Parser {
 
+  tokens: Tokenizer
+  current: Token | typeof EmptyToken
+  nextToken: Token | typeof EmptyToken
+  savedCurrent: Token | typeof EmptyToken
+  savedNextToken: Token | typeof EmptyToken
+  instructions: Instructions
+
   constructor(tokenizer) {
     this.tokens = tokenizer
-    this.current = null
-    this.nextToken = null
+    this.current = EmptyToken
+    this.nextToken = EmptyToken
     this.next()
-    this.savedCurrent = null
-    this.savedNextToken = null
+    this.savedCurrent = EmptyToken
+    this.savedNextToken = EmptyToken
     this.instructions = []
   }
 
@@ -65,17 +82,18 @@ export class Parser {
     while(!this.accept(TEOF)) {
       this.parseExpressions(this.instructions)
       if (!this.check(TEOF)) {
-        this.instructions.push(new Instruction(IENDSTATEMENT))
+        this.instructions.push(new Instruction(IENDSTATEMENT, TSEMICOLON))
       }
     }
     return this.instructions
   }
 
-  err(message) {
+  err(message: string) {
     const coords = this.tokens.getCoordinates()
     const e = new Error(
       `Parse error on line ${coords.line}, column ${coords.column}: ${message}`
-    )
+    ) as Error & { instructions: Instructions }
+
     // Pass partially tokenized instructions on parse error
     e.instructions = this.instructions
     throw e
@@ -86,7 +104,7 @@ export class Parser {
     return (this.nextToken = this.tokens.next())
   }
 
-  tokenMatches(token, value) {
+  tokenMatches(token: Token, value?: TokenValueChecker) {
     if (typeof value === 'undefined') {
       return true
     }
@@ -111,15 +129,15 @@ export class Parser {
     this.nextToken = this.savedNextToken
   }
 
-  check(type, value) {
-    return this.nextToken.type === type && this.tokenMatches(this.nextToken, value)
+  check(type: TokenType, value?: TokenValueChecker) {
+    return this.nextToken && this.nextToken.type === type && this.tokenMatches(this.nextToken, value)
   }
 
   hasNextToken() {
     return this.nextToken && this.nextToken.type !== TEOF
   }
 
-  accept(type, value) {
+  accept(type: TokenType, value?: TokenValueChecker) {
     if (this.check(type, value)) {
       this.next()
       return true
@@ -127,7 +145,7 @@ export class Parser {
     return false
   }
 
-  expect(type, value) {
+  expect(type: TokenType, value?: TokenValueChecker) {
     if (this.accept(type, value)) return true
     return this.err(
       `Expected ${
@@ -299,9 +317,9 @@ export class Parser {
 
     if (!this.accept(TBRACKET, '}') && this.hasNextToken()) {
 
-      const pairs = []
+      const pairs: Instructions[] = []
       do {
-        const pair = []
+        const pair: Instructions = []
         if (!this.parseKeyValuePair(pair)) continue
         keyValuePairCount++
         pairs.unshift(pair) // Expected order to key/value pairs
@@ -327,7 +345,7 @@ export class Parser {
     return true
   }
 
-  parseKeyValuePair(instr) {
+  parseKeyValuePair(instr: Instructions) {
     if (this.parseSpreadOperator(instr)) return true
 
     // Key
@@ -357,7 +375,8 @@ export class Parser {
 
     // { var } becomes { var: var }
     const key = instr.pop()
-    instr.push(key, new Instruction(IVAR, key.value))
+    if (key) instr.push(key, new Instruction(IVAR, key.value))
+
     return true
   }
 
@@ -405,7 +424,7 @@ export class Parser {
           instr.push(new Instruction(IVARNAME, varName.value))
         }
       }
-    } else this.err(`Unknown function argrument type`, arg.type+':'+arg.value)
+    } else this.err(`Unknown function argrument type ${arg.type}:${arg.value}`)
 
     instr.push(new Instruction(IEXPR, funcInstr))
     instr.push(new Instruction(IFUNDEFANON, argCount))
@@ -493,16 +512,17 @@ export class Parser {
 
   parseCompoundAssignment(instr) {
 
-    if (!this.check(TOP,
-      token => COMPOUND_ASSINGMENT_OPERATORS.indexOf(token.value)>=0
+    if (!this.nextToken.value || !this.check(TOP,
+      token => COMPOUND_ASSINGMENT_OPERATORS.indexOf(token.value as string)>=0
     )) return
 
     // Store token and advance
     const tokenValue = this.nextToken.value
+
     this.accept(TOP)
 
     // Extract target to use for value
-    const targetInstr = []
+    const targetInstr: Instructions = []
     this.parseCompoundAssignmentTarget(instr, targetInstr)
 
     // Parse original target
@@ -530,10 +550,10 @@ export class Parser {
     instr.push(binaryInstruction('='))
   }
 
-  parseCompoundAssignmentTarget(instr, targetInstr = []) {
+  parseCompoundAssignmentTarget(instr: Instructions, targetInstr: Instructions = []) {
 
     let varName = instr.pop()
-    if (!varName) return // Let parseAssignmentTarget handle error
+    if (typeof varName==='undefined') return // Let parseAssignmentTarget handle error
 
     if (varName.type === IVAR) {
       targetInstr.push(varName)
@@ -549,7 +569,11 @@ export class Parser {
     do {
       targetInstr.unshift(varName)
       varName = instr.pop()
-    } while(varName.type === IMEMBER)
+    } while(typeof varName!=='undefined' && varName.type === IMEMBER)
+
+    if (typeof varName==='undefined') {
+      return this.err('Expected variable with members for compound assignment but got undefined')
+    }
 
     if (varName.type === IVAR) {
       targetInstr.unshift(varName)
@@ -794,7 +818,7 @@ export class Parser {
         continue
       }
 
-      const exprInstr = []
+      const exprInstr: Instructions = []
 
       if (hasVar && isAnonFunc) {
 

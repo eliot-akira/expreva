@@ -77,7 +77,7 @@ export function filter(fn, arr) {
   return arr
 }
 
-export function reduce(arr, fn, acc) {
+export function reduce(arr, fn?, acc?) {
 
   // Curried: reduce(arr)(fn, acc)
   if (typeof fn==='undefined')  {
@@ -118,7 +118,8 @@ export function push(arr, item, ...items) {
   }
 
   if (typeof arr==='object') {
-    items.unshift(item).forEach(function(i) {
+    items.unshift(item)
+    items.forEach(function(i) {
       Object.assign(arr, i)
     })
     return arr
@@ -143,7 +144,7 @@ export function pop(arr, key) {
   return arr
 }
 
-export function insert(arr, index, ...items) {
+export function insert(arr, index?, ...items) {
   if (Array.isArray(arr)) {
     if (typeof index==='undefined') {
       return (...args) => insert(arr, ...args)
@@ -155,7 +156,7 @@ export function insert(arr, index, ...items) {
   return arr
 }
 
-export function slice(arr, start, end) {
+export function slice(arr, start?, end?) {
   if (Array.isArray(arr)) {
     if (typeof start==='undefined') {
       return (...args) => slice(arr, ...args)
@@ -206,7 +207,7 @@ export function keys(arr) {
 export function values(arr) {
 
   if (Array.isArray(arr)) return arr
-  if (typeof arr==='string') return arr.split()
+  if (typeof arr==='string') return arr.split('')
 
   if (typeof arr==='object') {
     return Object.values(arr)
@@ -296,7 +297,7 @@ export function repeat(num, fn) {
     num = _
   }
 
-  const arr = []
+  const arr: any[] = []
 
   for (let i=0; i < num; i++) {
     arr.push(fn(i))

@@ -20,7 +20,7 @@ yarn
 
 #### Develop
 
-Build, watch files and rebuild
+Build, watch files and rebuild. This also starts a dev server with a page to test expressions.
 
 ```sh
 yarn dev
@@ -33,6 +33,12 @@ yarn test
 ```
 
 This can be run in parallel with `dev` task above (in another terminal process) for test-driven development.
+
+Type-check, watch files and rerun.
+
+```sh
+yarn type
+```
 
 #### Build and minify
 

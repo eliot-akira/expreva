@@ -3,21 +3,46 @@ import commonjs from 'rollup-plugin-commonjs'
 import babel from 'rollup-plugin-babel'
 import pkg from './package.json'
 
+const extensions = ['.js', '.json', '.ts']
 const commonOptions = {
   output: {
     format: 'umd',
-    //exports: 'named',
+    //exports: 'named', // Mixing named and default exports
     sourcemap: true,
   },
-  watch: { clearScreen: false },
+  watch: {
+    clearScreen: false
+  },
   plugins: [
-    resolve(),
+    resolve({
+      extensions
+    }),
     commonjs(),
     babel({
+
+      // Workaround to allow function default parameters with public/private to assign to this
+      // https://github.com/babel/babel/issues/7074
+      passPerPreset: true,
+
+      presets: [
+        '@babel/preset-typescript',
+        ['@babel/preset-env', {
+          'targets': {
+            'browsers': ['> 0.25%, not dead', 'not ie 11', 'not op_mini all']
+          },
+          'useBuiltIns': 'usage',
+          'corejs': '3',
+          'modules': false
+        }]
+      ],
+      plugins: [
+        '@babel/plugin-proposal-class-properties'
+      ],
       exclude: [
         'build/**',
         'node_modules/**'
-      ]
+      ],
+      extensions
     })
   ]
 }
@@ -25,7 +50,7 @@ const commonOptions = {
 export default [
   {
     ...commonOptions,
-    input: 'src/index.js',
+    input: 'src/index.ts',
     output: {
       ...commonOptions.output,
       name: 'expreva',
@@ -34,7 +59,7 @@ export default [
   },
   {
     ...commonOptions,
-    input: 'src/extend/math.js',
+    input: 'src/extend/math.ts',
     output: {
       ...commonOptions.output,
       name: 'expreva.math',

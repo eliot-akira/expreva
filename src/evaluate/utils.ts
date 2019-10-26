@@ -12,7 +12,5 @@ export function err(arg) {
 }
 
 export class ReturnJump {
-  constructor(value) {
-    this.value = value
-  }
+  constructor(public value) {}
 }

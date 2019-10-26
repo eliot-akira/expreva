@@ -23,11 +23,18 @@ export const IENDSTATEMENT = 'IENDSTATEMENT'
 export const IRETURN = 'IRETURN'
 export const IEXPREVAL = 'IEXPREVAL'
 
+export const instructions = {
+  INUMBER, IOP1, IOP2, IOP3, IVAR, IVARNAME, IVARNAME_MEMBER, IFUNDEF, IFUNDEFANON, IFUNCALL, IFUNAPPLY, IEXPR, IARRAY, IOBJECT, IMEMBER, ISPREAD, IENDSTATEMENT, IRETURN, IEXPREVAL
+} as const
+
+export type InstructionType = keyof typeof instructions
+export type InstructionValue = null | string | number | Instruction | Instructions
+export type Instructions = Instruction[]
+
 export class Instruction {
-  constructor(type, value) {
-    this.type = type
-    this.value = (value !== undefined && value !== null) ? value : 0
-  }
+
+  constructor(public type: InstructionType, public value: InstructionValue = 0) {}
+
   toString(indent = 0) {
     return toString(this.type, this.value, indent)
   }
@@ -77,12 +84,12 @@ function toString(type, value, indent) {
   }
 }
 
-function instrArrayToString(arr, indent = 2) {
-  return arr.map(val => ' '.repeat(indent)+val.toString(indent)).join('\n')
+function instrArrayToString(arr: Instructions, indent = 2) {
+  return arr.map(val => ' '.repeat(indent)+val.toString()).join('\n')
 }
 
-function instrObjToString(obj, indent = 2) {
-  return Object.keys(obj).map(key => ' '.repeat(indent)+key.toString(indent)+': '+obj[key].toString(indent)).join('\n')
+function instrObjToString(obj: Instruction, indent = 2) {
+  return Object.keys(obj).map(key => ' '.repeat(indent)+key.toString()+': '+obj[key].toString()).join('\n')
 }
 
 function plural(val) {

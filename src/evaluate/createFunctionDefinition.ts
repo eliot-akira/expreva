@@ -14,7 +14,7 @@ export default function createFunctionDefinition({
 
   // Function body
   const n2 = stack.pop()
-  const args = []
+  const args: any[] = []
 
   while (argCount-- > 0) {
     args.unshift(stack.pop())

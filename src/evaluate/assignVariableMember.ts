@@ -37,7 +37,7 @@ export default function assignVariableMember({
 
   // Reach into members
 
-  const memberNames = []
+  const memberNames: string[] = []
 
   while (++pos && (currentInstr = varMembers[pos]) && currentInstr.type===IMEMBER) {
 

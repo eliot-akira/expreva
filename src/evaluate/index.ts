@@ -1,4 +1,6 @@
 import {
+  InstructionType, InstructionValue,
+
   INUMBER,
   IOP1,
   IOP2,
@@ -47,7 +49,7 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
     return resolveExpression(instrs)
   }
 
-  const stack = []
+  const stack: any[] = []
   const context = {
     global: { scope: globalScope },
     local: { scope: localScope }
@@ -184,7 +186,7 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
 
     case IARRAY: {
       let argCount = instr.value
-      const args = []
+      const args: any[] = []
       while (argCount-- > 0) {
         const arg = stack.pop()
         if (isSpreadOperator(arg)) {
@@ -312,6 +314,6 @@ function createExpressionEvaluator(instr, globalScope, localScope) {
   }
 }
 
-function resolveExpression(n, functionScope, ...args) {
+function resolveExpression(n, functionScope?, ...args) {
   return isExpressionEvaluator(n) ? n.value(functionScope, ...args) : n
 }

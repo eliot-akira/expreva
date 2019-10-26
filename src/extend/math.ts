@@ -1,5 +1,9 @@
 // import { factorial } from '../functions'
 
+declare global {
+  interface Window { expreva: any }
+}
+
 // Global library
 if ('undefined'!==typeof window && 'undefined'!==typeof window.expreva) {
   extend(window.expreva)

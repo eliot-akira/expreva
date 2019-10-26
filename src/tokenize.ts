@@ -1,5 +1,5 @@
 import {
-  Token,
+  Token, TokenType, TokenValue,
   TEOF,
   TOP,
   TNUMBER,
@@ -14,19 +14,36 @@ import {
 import { toUtf16 } from './utils'
 import { unaryOps, binaryOps, ternaryOps, constants } from './functions/builtIns'
 
+import { Source } from './types'
+
 const ALPHANUMERIC_PATTERN = /^[0-9a-zA-Z]{1}$/i
 const CODEPOINT_CHAR_PATTERN = /^[0-9a-f]{1}$/i
 const CODEPOINT_PATTERN = /^[0-9a-f]{4}$/i
 // TODO: Range of code point
 const EXTENDED_CODEPOINT_PATTERN = /^[0-9a-f]{5}$/i
 
-export default function tokenize(source) {
+export default function tokenize(source: Source) {
   return new Tokenizer(source)
 }
 
 export class Tokenizer {
 
-  constructor(source) {
+  source: string
+  pos: number
+  current: Token | null
+
+  savedPosition: number
+  savedCurrent: Token | null
+
+  // TODO: Refactor
+  unaryOps: { [key: string]: any }
+  binaryOps: { [key: string]: any }
+  ternaryOps: { [key: string]: any }
+  constants: { [key: string]: any }
+
+  constructor(source: Source) {
+    this.source = source
+
     this.pos = 0
     this.current = null
 
@@ -35,19 +52,17 @@ export class Tokenizer {
     this.ternaryOps = ternaryOps
     this.constants = constants
 
-    this.source = source
-
     this.savedPosition = 0
     this.savedCurrent = null
   }
 
-  newToken(type, value, pos) {
-    return new Token(type, value, pos != null ? pos : this.pos)
+  newToken(type: TokenType, value: TokenValue, pos: number = this.pos) {
+    return new Token(type, value, pos)
   }
 
   getCoordinates() {
     let line = 0
-    let column
+    let column: number
     let newline = -1
     do {
       line++
@@ -60,7 +75,7 @@ export class Tokenizer {
     }
   }
 
-  parseError(msg) {
+  parseError(msg: string) {
     const coords = this.getCoordinates()
     throw new Error('Parse error in line ' + coords.line + ', column ' + coords.column + ': ' + msg)
   }
@@ -419,7 +434,7 @@ export class Tokenizer {
       }
     }
 
-    let numString = valid && this.source.substring(startPos, pos)
+    let numString = valid ? this.source.substring(startPos, pos) : ''
 
     const isAfterExpression = prevChar
       && (

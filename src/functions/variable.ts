@@ -1,7 +1,7 @@
 
 // TODO: Reconsider global/local variables
 
-export function set(obj, name, value) {
+export function set(obj, name?: string | object, value?) {
 
   if (typeof name==='undefined') return (...args) => set(obj, ...args)
 
@@ -36,13 +36,14 @@ export function set(obj, name, value) {
   return obj
 }
 
-export function unset(obj, name, count = 1) {
+// { [key: string]: any }
+export function unset(obj, name?: string | number, count?: number) {
 
-  if (typeof name==='undefined') return (...args) => set(obj, ...args)
+  if (typeof name==='undefined') return (...args) => unset(obj, ...args)
 
   if (Array.isArray(obj)) {
     // Remove item by index
-    return obj.splice(name, count)
+    return obj.splice(name as number, count || 1)
     // Remove item by reference?
   }
 

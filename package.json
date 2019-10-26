@@ -1,11 +1,12 @@
 {
   "name": "expreva",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Expreva - A language based on arithmetic and algebra expressions",
   "scripts": {
     "dev": "concurrently --raw \"rollup -c rollup.config.js -w\" \"node dev-server\"",
     "build": "rollup -c rollup.min.config.js",
     "test": "if [ ! -d \"build\" ]; then yarn build; fi; tester src/tests",
+    "type": "tsc --noEmit --watch",
     "deploy": "./deploy"
   },
   "bin": {
@@ -19,18 +20,22 @@
   ],
   "dependencies": {},
   "devDependencies": {
-    "@babel/core": "^7.6.2",
-    "@babel/preset-env": "^7.6.2",
-    "@babel/runtime-corejs3": "^7.6.2",
+    "@babel/core": "^7.6.4",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
+    "@babel/plugin-transform-classes": "^7.5.5",
+    "@babel/preset-env": "^7.6.3",
+    "@babel/preset-typescript": "^7.6.0",
+    "@babel/runtime-corejs3": "^7.6.3",
     "@mna/tester": "2.x",
     "concurrently": "^5.0.0",
-    "core-js": "^3.2.1",
+    "core-js": "^3.3.4",
     "onchange": "^6.1.0",
-    "rollup": "^1.23.1",
+    "rollup": "^1.25.2",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-commonjs": "^10.1.0",
     "rollup-plugin-node-resolve": "^5.2.0",
-    "rollup-plugin-uglify": "^6.0.3"
+    "rollup-plugin-terser": "^5.1.2",
+    "typescript": "^3.6.4"
   },
   "keywords": [
     "expression",
