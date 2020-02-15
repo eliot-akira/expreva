@@ -1,13 +1,15 @@
 const path = require('path')
 const fs = require('fs')
 const readline = require('readline')
-const util = require('util')
+const common = require('./common')
+const {
+  cwd, args, options,
+  log, renderInstructions,
+  loadExpreva
+} = common
+let { expreva } = common
 
-const cwd = process.cwd()
-const log = o => console.log(util.inspect(o, { showHidden: false, depth: null, colors: true }))
-const libPath = path.resolve(path.join(__dirname, '..', 'build', 'expreva.js'))
-
-console.log('Welcome to Expreva\nEnter "." for block mode and to run block, ".." to exit')
+console.log('Welcome to Expreva\nEnter ".b" to enter block mode, ".p" to toggle parse/eval mode, "." to run block, ".." to exit')
 
 const reader = readline.createInterface({
   input: process.stdin,
@@ -17,18 +19,9 @@ const reader = readline.createInterface({
 
 reader.prompt()
 
-let expreva
-let mode = 'line' // block
+let inputMode = 'line' // block
+let runMode = 'eval'
 let block = ''
-
-const load = () => {
-  delete require.cache[libPath]
-  expreva = require(libPath)
-  assignScope()
-  return expreva
-}
-
-load()
 
 function assignScope() {
   Object.assign(expreva.scope, {
@@ -44,43 +37,73 @@ function assignScope() {
     load(src) {
       return fs.readFileSync(path.join(cwd, `${src}.expr`), 'utf8')
     },
-    reload: load
+    print(...args) {
+      console.log(...args)
+    },
+    reload: () => {
+      expreva = loadExpreva()
+      assignScope()
+    }
   })
 }
 
+assignScope()
+
 const run = source => {
   try {
-    const result = expreva.evaluate(source)
-    if (result!=null && result!=='') log(result)
+    if (runMode==='parse') {
+      console.log(renderInstructions(expreva.parse(source)))
+    } else {
+      const result = expreva.evaluate(source)
+      if (result!=null && result!=='') log(result)
+    }
   } catch(e) {
     console.log(e.message)
   }
 }
+
+const setRunModePrompt = () => reader.setPrompt(
+  runMode==='parse' ? 'parse> ' : '> '
+)
 
 reader
   .on('line', (line) => {
 
     const source = line.trim()
 
-    if (mode==='block') {
+    if (source==='.p') {
+
+      runMode = runMode==='parse' ? 'eval' : 'parse'
+
+      console.log(runMode[0].toUpperCase() + runMode.slice(1) + ' mode')
+      if (inputMode!=='block') setRunModePrompt()
+
+    } else if (inputMode==='block') {
+
       if (source==='.') {
         run(block)
         block = ''
       } else if (source==='..') {
-        mode = 'line'
-        reader.setPrompt('> ')
+        inputMode = 'line'
+        setRunModePrompt()
       } else {
         block += source
       }
+
     } else {
       switch (source) {
-      case '.':
+      case '.b':
         block = ''
-        mode = 'block'
+        inputMode = 'block'
         reader.setPrompt('')
         break
       case '..':
         reader.close()
+        break
+      case '.r':
+        expreva = loadExpreva()
+        assignScope()
+        console.log('Expreva reloaded')
         break
       default:
         run(source)
@@ -89,7 +112,6 @@ reader
     }
 
     reader.prompt()
-
   })
   .on('close', () => {
     process.exit(0)

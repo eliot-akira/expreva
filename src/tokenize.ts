@@ -35,7 +35,6 @@ export class Tokenizer {
   savedPosition: number
   savedCurrent: Token | null
 
-  // TODO: Refactor
   unaryOps: { [key: string]: any }
   binaryOps: { [key: string]: any }
   ternaryOps: { [key: string]: any }
@@ -398,9 +397,8 @@ export class Tokenizer {
   }
 
   isNumber() {
-    let valid = false
-    let pos = this.pos
 
+    let pos = this.pos
     let prevPos = pos - 1
     let prevChar
 
@@ -410,7 +408,7 @@ export class Tokenizer {
     let foundDigits = false
     let c
 
-    // Skip whitespace to last char
+    // Skip to last non-whitespace char
     while ((prevChar = this.source.charAt(prevPos)) && this.isWhitespaceChar(prevChar)) {
       prevPos--
     }
@@ -419,9 +417,19 @@ export class Tokenizer {
 
     // Get number string
 
+    let valid = false
+
     while (pos < this.source.length) {
       c = this.source.charAt(pos)
-      if (pos===startPos && c==='-' || (c >= '0' && c <= '9') || (!foundDot && c === '.')) {
+      const startsWithMinus = (pos===startPos && c==='-')
+      if (startsWithMinus || (c >= '0' && c <= '9') || (!foundDot && c === '.')) {
+
+        // If previous char doesn't exist or is not whitespace, treat "-" as minus operation
+        if (startsWithMinus) {
+          const actualPrevChar = this.source.charAt(pos-1)
+          if (!actualPrevChar || prevChar===actualPrevChar) break
+        }
+
         if (c === '.') {
           foundDot = true
         } else if (c !== '-') {
@@ -434,7 +442,9 @@ export class Tokenizer {
       }
     }
 
-    let numString = valid ? this.source.substring(startPos, pos) : ''
+    if (!valid) return false
+
+    let numString = this.source.substring(startPos, pos)
 
     const isAfterExpression = prevChar
       && (
@@ -494,7 +504,7 @@ export class Tokenizer {
   isOperator() {
 
     let c = this.source.charAt(this.pos)
-    let nextC
+    let nextC: string
 
     if (c === '%' || c === '^' || c === '?' || c === ':') {
       return this.pushOperator(c)
@@ -521,19 +531,8 @@ export class Tokenizer {
       return this.pushOperator(c)
     }
 
-    if (c === '*') {
-      if (nextC === '=') return this.pushOperator(c+nextC)
-      return this.pushOperator(c)
-    }
-    if (c === '/') {
-      if (nextC === '=') return this.pushOperator(c+nextC)
-      return this.pushOperator(c)
-    }
-    if (c === '>') {
-      if (nextC === '=') return this.pushOperator(c+nextC)
-      return this.pushOperator(c)
-    }
-    if (c === '<') {
+    // Compound operators
+    if (c === '*' || c === '/' || c === '>' || c === '<') {
       if (nextC === '=') return this.pushOperator(c+nextC)
       return this.pushOperator(c)
     }

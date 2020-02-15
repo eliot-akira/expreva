@@ -18,7 +18,9 @@
     "**/*.js",
     "readme.md"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "lodash": "^4.17.15"
+  },
   "devDependencies": {
     "@babel/core": "^7.6.4",
     "@babel/plugin-proposal-class-properties": "^7.5.5",

@@ -1,5 +1,5 @@
 import {
-  InstructionType, InstructionValue,
+  Instructions, Instruction, InstructionType, InstructionValue,
 
   INUMBER,
   IOP1,
@@ -27,12 +27,18 @@ import { unaryOps, binaryOps, ternaryOps, functions, constants } from '../functi
 import { err, ReturnJump, isSpreadOperator, isExpressionEvaluator } from './utils'
 import createFunctionDefinition from './createFunctionDefinition'
 import assignVariableMember from './assignVariableMember'
+import { Scope, Options } from '../types'
 
-export default function evaluateWithCatchReturn(instrs, globalScope = {}, localScope = {}) {
+export default function evaluateWithCatchReturn(
+  instrs: Instructions,
+  globalScope: Scope = {},
+  localScope: Scope = {},
+  options: Options = {}
+): any {
   // Catch top-level return
-  let value
+  let value: any
   try {
-    value = evaluate(instrs, globalScope, localScope)
+    value = evaluate(instrs, globalScope, localScope, options)
   } catch(e) {
     if (e instanceof ReturnJump) {
       value = e.value
@@ -41,7 +47,12 @@ export default function evaluateWithCatchReturn(instrs, globalScope = {}, localS
   return value
 }
 
-function evaluate(instrs, globalScope = {}, localScope = {}) {
+function evaluate(
+  instrs: Instructions,
+  globalScope: Scope = {},
+  localScope: Scope = {},
+  options: Options = {}
+): any {
 
   if (typeof instrs==='undefined') return instrs
 
@@ -52,7 +63,8 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
   const stack: any[] = []
   const context = {
     global: { scope: globalScope },
-    local: { scope: localScope }
+    local: { scope: localScope },
+    options
   }
 
   function callWithContext(f, args) {
@@ -71,6 +83,7 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
 
   let f, n1, n2, n3
   let args, argCount
+
   for (let index = 0, len = instrs.length; index < len; index++) {
 
     const instr = instrs[index]
@@ -104,10 +117,11 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
 
     case IEXPR:
       // Expression - Defer evaluation
-      stack.push(createExpressionEvaluator(instr, globalScope, localScope))
+      stack.push(createExpressionEvaluator(instr, globalScope, localScope, options))
       break
     case IENDSTATEMENT:
-      stack.pop()
+      // Resolve last expression on stack, if any
+      resolveExpression(stack.pop())
       break
 
     case IOP1:
@@ -120,12 +134,13 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
 
       if (instr.value==='...') {
         // Defer resolving expression until actual spread
-        stack.push(typeof n1==='undefined' ? n1 :  { type: ISPREAD, value: n1 })
+        // TODO: Define behavior when used outside of array, object, or function argument
+        stack.push(typeof n1==='undefined' ? n1 : { type: ISPREAD, value: n1 })
         break
       }
 
-      f = unaryOps[instr.value]
-      stack.push(f(resolveExpression(n1)))
+      f = unaryOps[instr.value as string]
+      stack.push(callWithContext(f, [resolveExpression(n1)]))
       break
 
     case IOP2:
@@ -142,14 +157,14 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
         break
       }
       if (instr.value !== '=') {
-        f = binaryOps[instr.value]
+        f = binaryOps[instr.value as string]
         stack.push(callWithContext(f, [resolveExpression(n1), resolveExpression(n2)]))
         break
       }
 
       // Assignment: variable name, member, destructure array/object
 
-      f = binaryOps[instr.value]
+      f = binaryOps[instr.value as string]
 
       if (typeof n1==='string') {
         stack.push(callWithContext(f, [n1, resolveExpression(n2)]))
@@ -179,13 +194,13 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       if (instr.value === '?' || instr.value === 'if') {
         stack.push(resolveExpression(resolveExpression(n1) ? n2 : n3))
       } else {
-        f = ternaryOps[instr.value]
-        stack.push(f(resolveExpression(n1), resolveExpression(n2), resolveExpression(n3)))
+        f = ternaryOps[instr.value as string]
+        stack.push(callWithContext(f, [resolveExpression(n1), resolveExpression(n2), resolveExpression(n3)]))
       }
       break
 
     case IARRAY: {
-      let argCount = instr.value
+      let argCount = instr.value as number
       const args: any[] = []
       while (argCount-- > 0) {
         const arg = stack.pop()
@@ -199,7 +214,7 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
     }  break
 
     case IOBJECT: {
-      let keyValuePairCount = instr.value
+      let keyValuePairCount = instr.value as number
       const obj = {}
       while (keyValuePairCount-- > 0) {
         n2 = resolveExpression(stack.pop())
@@ -238,7 +253,6 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       }
 
       stack.push(n1)
-      //return err('"' + f + '" is not a function')
       break
 
     case IFUNDEFANON:
@@ -256,7 +270,7 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
       n2 = instr.value
       n1 = stack.pop()
       f = typeof n2==='object' && n2.type===IEXPR
-        ? evaluate(n2.value, globalScope, localScope)
+        ? evaluate(n2.value, globalScope, localScope, options)
         : findVariable(n2) // n2
 
       if (f instanceof Function) {
@@ -274,8 +288,8 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
     case IMEMBER:
       n2 = instr.value
       n1 = stack.pop()
-      f = typeof n2==='object' && n2.type===IEXPR
-        ? evaluate(n2.value, globalScope, localScope)
+      f = isExpressionEvaluator(n2)
+        ? resolveExpression(n2)
         : n2
 
       // Prevent climbing native prototype
@@ -297,19 +311,24 @@ function evaluate(instrs, globalScope = {}, localScope = {}) {
   return n1 === -0 ? 0 : resolveExpression(n1) // eslint-disable-line no-compare-neg-zero
 }
 
-function createExpressionEvaluator(instr, globalScope, localScope) {
+function createExpressionEvaluator(
+  instr: Instruction,
+  globalScope?: Scope,
+  localScope?: Scope,
+  options: Options = {}
+) {
   if (isExpressionEvaluator(instr)) return instr
   return {
     type: IEXPREVAL,
     instructions: instr.value,
     value: instr instanceof Function
       ? instr
-      : function (functionScope) {
+      : function (functionScope?: Scope | false) {
 
         // Unused for now
         if (functionScope===false) return instr.value
 
-        return evaluate(instr.value, globalScope, functionScope || localScope)
+        return evaluate(instr.value as Instructions, globalScope, functionScope || localScope, options)
       }
   }
 }

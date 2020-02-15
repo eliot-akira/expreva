@@ -33,11 +33,16 @@ export function map(fn, arr) {
   }
 
   if (typeof arr==='object') {
+
     const keys = Object.keys(arr)
-    return keys
-      .map(function(key, i) {
-        return fn(key, arr[key], i)
-      })
+    const result = {}
+
+    for (let i=0, len=keys.length; i < len; i++) {
+      const key = keys[i]
+      result[key] = fn(arr[key], key, i)
+    }
+
+    return result
   }
 
   return arr
@@ -64,14 +69,17 @@ export function filter(fn, arr) {
   }
 
   if (typeof arr==='object') {
+
     const keys = Object.keys(arr)
-    return keys
-      .filter(function(key, i) {
-        return fn(arr[key], key, i)
-      })
-      .map(function(key) {
-        return arr[key]
-      })
+    const result = {}
+
+    for (let i=0, len=keys.length; i < len; i++) {
+      const key = keys[i]
+      if (!fn(arr[key], key, i)) continue
+      result[key] = arr[key]
+    }
+
+    return result
   }
 
   return arr
@@ -101,7 +109,7 @@ export function reduce(arr, fn?, acc?) {
   return arr
 }
 
-// push, pop, insert, slice, search
+// push, pop, insert, slice, search, sort
 
 export function push(arr, item, ...items) {
 
@@ -176,15 +184,59 @@ export function search(arr, item) {
   }
 
   // Reversed arguments: search(item, arr)
-  if (typeof arr==='string' || arr instanceof Function) {
-    var _ = item
-    item = arr
-    arr = _
-  }
+  // if (typeof arr==='string' || arr instanceof Function) {
+  //   var _ = item
+  //   item = arr
+  //   arr = _
+  // }
 
-  if (Array.isArray(arr)) {
+  if (Array.isArray(arr) || typeof arr==='string') {
+    if (item instanceof Function) {
+      for (let i=0, len=arr.length; i < len; i++) {
+        if (item(arr[i])) return i
+      }
+      return -1
+    }
     return arr.indexOf(item)
   }
+
+  if (typeof arr==='object') {
+
+    const keys = Object.keys(arr)
+
+    if (item instanceof Function) {
+      for (let i=0, len=keys.length; i < len; i++) {
+        if (item(arr[ keys[i] ])) return keys[i]
+      }
+      // Not found for object returns undefined instead of -1
+      return
+    }
+
+    for (let i=0, len=keys.length; i < len; i++) {
+      if (item===arr[ keys[i] ]) return keys[i]
+    }
+    return
+  }
+
+  return arr
+}
+
+export function sort(arr, fn) {
+  // Curried: sort(arr)(fn)
+  if (typeof fn==='undefined')  {
+    return function(arg = true) {
+      return sort(arr, arg)
+    }
+  }
+
+  if (arr instanceof Function) {
+    let _ = arr
+    arr = fn
+    fn = _
+  }
+
+  if (fn===true) arr.sort()
+  else arr.sort(fn)
 
   return arr
 }
@@ -222,7 +274,7 @@ export function join(arr, sep) {
 
   // Curried: join(arr)(sep)
   if (typeof sep==='undefined')  {
-    return function(arg) {
+    return function(arg = '') {
       return join(arr, arg)
     }
   }
@@ -256,7 +308,7 @@ export function join(arr, sep) {
 
 export function split(arr, sep) {
 
-  // Curried: join(arr)(sep)
+  // Curried: split(arr)(sep)
   if (typeof sep==='undefined')  {
     return function(arg) {
       return split(arr, arg)
@@ -279,28 +331,54 @@ export function split(arr, sep) {
 }
 
 
-// TODO: Flexbile loop construct
+// repeat
 
-export function repeat(num, fn) {
+export function repeat(num, check, incr: number | ((i: number) => any) = 1) {
 
-  // Curried: repeat(num)(fn)
-  if (typeof fn==='undefined')  {
-    return function(nextFn) {
-      return repeat(num, nextFn)
+  // Curried: repeat(num)(check)
+  if (typeof check==='undefined')  {
+    return function(nextCheck, nextIncr) {
+      return repeat.apply(this, [num, nextCheck, nextIncr])
     }
   }
 
-  // Reversed arguments: repeat(fn, num)
-  if (num instanceof Function) {
-    let _ = fn
-    fn = num
-    num = _
-  }
+  const {
+    maxLoops = 10000
+  } = this.options
 
   const arr: any[] = []
 
-  for (let i=0; i < num; i++) {
-    arr.push(fn(i))
+  // Reversed arguments: repeat(check, num)
+  if (typeof check==='number') {
+    let _ = check
+    check = num
+    num = _
+  }
+
+  // Create checker for number
+  if (typeof num==='number') {
+    let _ = num
+    num = check
+    check = (i: number): boolean => i < _
+  }
+
+  // Allow interrupt at each step
+  let steps = 0
+
+  let i = 0
+
+  if (typeof incr==='number') {
+    while (check(i)) {
+      arr.push(num(i))
+      i+=incr
+      if (++steps > maxLoops) break
+    }
+  } else {
+    while (check(i)) {
+      arr.push(num(i))
+      i = incr(i)
+      if (++steps > maxLoops) break
+    }
   }
 
   return arr

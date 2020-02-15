@@ -12,6 +12,10 @@ test('function', it => {
   is('((x, y) => x * y)(3, 4)', 12)
   is('(x => y => z => x * y * z)(3)(4)(5)', 60)
   is('percent = x => x / 100; percent(2)', 2/100)
+
+  is('f = (x, y) => x ; f(true, () => 1)', true)
+  is('f = (x, y) => y ; f(true, () => 1)', r => r instanceof Function)
+
 })
 
 test('function default arguments', it => {

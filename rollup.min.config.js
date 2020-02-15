@@ -12,7 +12,7 @@ export default config.map(({ input, output, external, watch, plugins }) => {
       terser({
         compress: true,
         mangle: true,
-        keep_fnames: true // For built-in and library function names
+        //keep_fnames: true // For built-in and library function names
       })
     ]
   }

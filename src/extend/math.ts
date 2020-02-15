@@ -11,9 +11,6 @@ if ('undefined'!==typeof window && 'undefined'!==typeof window.expreva) {
 
 // Module
 export default function extend(expreva) {
-
-  if (expreva.scope.math) return
-
   Object.assign(expreva.scope, {
     math: {
       e: Math.E,

@@ -23,11 +23,27 @@ export const IENDSTATEMENT = 'IENDSTATEMENT'
 export const IRETURN = 'IRETURN'
 export const IEXPREVAL = 'IEXPREVAL'
 
-export const instructions = {
-  INUMBER, IOP1, IOP2, IOP3, IVAR, IVARNAME, IVARNAME_MEMBER, IFUNDEF, IFUNDEFANON, IFUNCALL, IFUNAPPLY, IEXPR, IARRAY, IOBJECT, IMEMBER, ISPREAD, IENDSTATEMENT, IRETURN, IEXPREVAL
-} as const
+export type InstructionType =
+  'INUMBER'
+  | 'IOP1'
+  | 'IOP2'
+  | 'IOP3'
+  | 'IVAR'
+  | 'IVARNAME'
+  | 'IVARNAME_MEMBER'
+  | 'IFUNDEF'
+  | 'IFUNDEFANON'
+  | 'IFUNCALL'
+  | 'IFUNAPPLY'
+  | 'IEXPR'
+  | 'IARRAY'
+  | 'IOBJECT'
+  | 'IMEMBER'
+  | 'ISPREAD'
+  | 'IENDSTATEMENT'
+  | 'IRETURN'
+  | 'IEXPREVAL'
 
-export type InstructionType = keyof typeof instructions
 export type InstructionValue = null | string | number | Instruction | Instructions
 export type Instructions = Instruction[]
 
@@ -40,7 +56,7 @@ export class Instruction {
   }
 }
 
-function toString(type, value, indent) {
+function toString(type: InstructionType, value: InstructionValue, indent:number = 0) {
   switch (type) {
   case INUMBER:
     if (typeof value === 'boolean')
@@ -59,7 +75,7 @@ function toString(type, value, indent) {
   case IVARNAME:
     return 'Variable name ' + value
   case IEXPR:
-    return 'Expression\n' + instrArrayToString(value, indent + 2) //+'\n'
+    return 'Expression\n' + instrArrayToString(value as Instructions, indent + 2) //+'\n'
   case IENDSTATEMENT:
     return 'End statement'// + value
   case IFUNCALL:
@@ -74,7 +90,7 @@ function toString(type, value, indent) {
   case IMEMBER:
     return 'Member ' + value
   case IVARNAME_MEMBER:
-    return 'Variable member ' + value.map(i => i.value).join('.')
+    return 'Variable member ' + (value as Instructions).map(i => i.value).join('.')
   case IARRAY:
     return 'Array of ' + value + ' item' + plural(value)
   case IOBJECT:
@@ -85,7 +101,7 @@ function toString(type, value, indent) {
 }
 
 function instrArrayToString(arr: Instructions, indent = 2) {
-  return arr.map(val => ' '.repeat(indent)+val.toString()).join('\n')
+  return arr.map(val => ' '.repeat(indent)+val.toString(indent)).join('\n')
 }
 
 function instrObjToString(obj: Instruction, indent = 2) {

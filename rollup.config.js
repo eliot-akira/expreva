@@ -66,4 +66,15 @@ export default [
       file: 'build/expreva.math.js',
     },
   },
+  // lodash/fp
+  // @see https://github.com/lodash/lodash/wiki/FP-Guide
+  {
+    ...commonOptions,
+    input: 'src/extend/lodash.ts',
+    output: {
+      ...commonOptions.output,
+      name: 'expreva.lodash',
+      file: 'build/expreva.lodash.js',
+    },
+  },
 ]

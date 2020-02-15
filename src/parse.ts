@@ -36,7 +36,6 @@ import {
 } from './instruction'
 import { contains } from './utils'
 import tokenize, { Tokenizer } from './tokenize'
-
 import { Source, Instructions } from './types'
 
 const COMPARISON_OPERATORS = ['==', '!=', '<', '<=', '>=', '>', 'in']
@@ -191,6 +190,9 @@ export class Parser {
       return instr.push(new Instruction(IVAR, this.current.value))
     }
     if (this.accept(TNUMBER)) {
+
+      // TODO: Distinguish "-" between negative number and minus operation
+
       return instr.push(new Instruction(INUMBER, this.current.value))
     }
     if (this.accept(TSTRING)) {
@@ -220,12 +222,19 @@ export class Parser {
   }
 
   parseNextStatement(instr) {
-    if (!this.accept(TSEMICOLON)) return false
-    if (!this.isEndOfExpression()) {
+    if (this.accept(TSEMICOLON) || !this.isEndOfExpression()) {
       instr.push(new Instruction(IENDSTATEMENT))
       this.parseExpressions(instr)
+      return true
     }
-    return true
+    return false
+/*    //if (!this.accept(TSEMICOLON)) return false
+    if (!this.accept(TSEMICOLON) || this.isEndOfExpression()) return false
+    //if (!this.isEndOfExpression()) {
+      instr.push(new Instruction(IENDSTATEMENT))
+      this.parseExpressions(instr)
+    //}
+    return true*/
   }
 
   parseInnerExpressions(instr) {
@@ -233,11 +242,19 @@ export class Parser {
     this.validateStartOfExpression()
 
     if (!this.accept(TPAREN, '(')) return false
-    if (this.accept(TPAREN, ')')) return true // Empty is valid
 
     // Possible argument list for an anomymous function
+
+    if (this.accept(TPAREN, ')')) {
+      // Empty is valid
+      instr.push(new Instruction(IEXPR, []))
+      return true
+    }
+
     const firstExpr = []
+
     this.parseExpressions(firstExpr)
+
     if (firstExpr.length===1) instr.push(...firstExpr)
     else instr.push(new Instruction(IEXPR, firstExpr))
 
@@ -397,6 +414,9 @@ export class Parser {
     } else if (arg.type===IVAR) {
       argCount = 1
       instr.push(new Instruction(IVARNAME, arg.value))
+    } else if (arg.type===INUMBER) {
+      argCount = 1
+      instr.push(arg)
     } else if (arg.type===IEXPR) {
 
       // Args gathered by parseAtom and parseInnerExpressions
@@ -495,16 +515,7 @@ export class Parser {
 
     // Like parseExpression, but doesn't call parseAssignment again
 
-    if (this.parseArray(instr)) return
-
-    const isAfterObject = this.parseObject(instr)
-    if (this.isEndOfExpression() || this.parseNextStatement(instr)) return
-
-    // Include in current expression only what comes after an object
-    // TODO: Clarify and generalize logic
-    if (isAfterObject && (
-      this.nextToken.type===TNAME || this.nextToken.type===TBRACKET
-    )) return
+    if (this.parseArray(instr) || this.parseObject(instr) || this.isEndOfExpression()) return
 
     this.parseConditionalExpression(instr)
     this.parseAnonymousFunction(instr)
@@ -512,9 +523,7 @@ export class Parser {
 
   parseCompoundAssignment(instr) {
 
-    if (!this.nextToken.value || !this.check(TOP,
-      token => COMPOUND_ASSINGMENT_OPERATORS.indexOf(token.value as string)>=0
-    )) return
+    if (!this.nextToken.value || !this.check(TOP, COMPOUND_ASSINGMENT_OPERATORS)) return
 
     // Store token and advance
     const tokenValue = this.nextToken.value
@@ -723,6 +732,20 @@ export class Parser {
     }
   }
 
+  isStartOfFunctionCall() {
+
+    if (!this.check(TPAREN, '(')) return false
+
+    // If there's a white space before it, assume separate expression
+
+    this.tokens.save()
+    this.tokens.pos -= 2 // It currently points to next token after (
+    const isFunctionCall = !this.tokens.isWhitespace() && !this.tokens.isComment()
+    this.tokens.restore()
+
+    return isFunctionCall
+  }
+
   parseFunctionCall(instr, withMember = false) {
 
     if (this.acceptPrefixOperator()) {
@@ -734,16 +757,7 @@ export class Parser {
 
     if (!withMember) this.parseMember(instr)
 
-    // If there's a white space before it, assume separate expression
-    if (this.check(TPAREN, '(')) {
-      this.tokens.save()
-      this.tokens.pos -= 2 // It currently points to next token after (
-      const isFunctionCall = !this.tokens.isWhitespace() && !this.tokens.isComment()
-      this.tokens.restore()
-      if (!isFunctionCall) return
-    }
-
-    while (this.accept(TPAREN, '(')) {
+    while (this.isStartOfFunctionCall() && this.accept(TPAREN, '(')) {
 
       if (this.accept(TPAREN, ')')) {
         instr.push(new Instruction(IFUNCALL, 0))
@@ -777,8 +791,8 @@ export class Parser {
     this.parseMemberOfExpression(instr)
   }
 
-  parseMemberOfExpression(instr) {
-    this.parseFunctionApply(instr)
+  parseMemberOfExpression(instr, ofFunctionApply = false) {
+    if (!ofFunctionApply) this.parseFunctionApply(instr)
     while (this.accept(TOP, '.')) {
       if (this.accept(TNAME) || this.accept(TNUMBER) || this.accept(TSTRING)) {
         instr.push(new Instruction(IMEMBER, this.current.value))
@@ -788,7 +802,7 @@ export class Parser {
         this.expect(TPAREN, ')')
         instr.push(new Instruction(IMEMBER, new Instruction(IEXPR, exprInstr)))
       }
-      this.parseFunctionCall(instr, true)
+      if (!ofFunctionApply) this.parseFunctionCall(instr, true)
     }
   }
 
@@ -809,31 +823,40 @@ export class Parser {
       const varName = this.current.value
       const isAnonFunc = this.check(TOP, '=>')
 
-      if (hasVar && !isAnonFunc) {
-
-        // -> x
-
-        instr.push(new Instruction(IFUNAPPLY, varName))
-        this.parseFunctionCall(instr, true)
-        continue
-      }
-
       const exprInstr: Instructions = []
 
-      if (hasVar && isAnonFunc) {
+      if (hasVar) {
 
-        // -> x =>
+        if (!isAnonFunc) {
 
-        let argCount = 1
-        const funcInstr = []
+          // -> x.y
 
-        this.expect(TOP, '=>')
-        this.parseExpression(funcInstr)
+          this.parseMemberOfExpression(exprInstr, true)
 
-        exprInstr.push(new Instruction(IVARNAME, varName))
-        exprInstr.push(new Instruction(IEXPR, funcInstr))
-        exprInstr.push(new Instruction(IFUNDEFANON, argCount))
+          if (!exprInstr[0]) {
+            // -> x
+            instr.push(new Instruction(IFUNAPPLY, varName))
+            this.parseFunctionCall(instr, true)
+            return
+          }
 
+          exprInstr.unshift(new Instruction(IVAR, varName))
+
+        } else {
+
+          // -> x =>
+
+          let argCount = 1
+          const funcInstr = []
+
+          this.expect(TOP, '=>')
+          this.parseExpression(funcInstr)
+
+          exprInstr.push(new Instruction(IVARNAME, varName))
+          exprInstr.push(new Instruction(IEXPR, funcInstr))
+          exprInstr.push(new Instruction(IFUNDEFANON, argCount))
+
+        }
       } else {
 
         // -> (..)

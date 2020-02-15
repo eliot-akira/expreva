@@ -57,12 +57,12 @@ export default function assignVariableMember({
 
     if (typeof currentValue==='undefined') {
       return err('Variable member assignment requires array or object as member: '
-        +[varName, ...memberNames].join('.')
+        +([varName, ...memberNames].join('.'))
       )
     }
 
     parentValue = currentValue
   }
 
-  return err('Variable member not found for assignment: '+[varName, ...memberNames].join('.'))
+  return err('Variable member not found for assignment: '+([varName, ...memberNames].join('.')))
 }

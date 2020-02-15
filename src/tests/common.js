@@ -8,7 +8,7 @@ const eva = it => (k, v) => {
   } catch(e) {
     r = e.message
   }
-  it(k, it.is(r, v))
+  it(k, v instanceof Function ? v(r) : it.is(r, v))
 }
 
 const parse = expreva.parse.bind(expreva)

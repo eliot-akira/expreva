@@ -81,12 +81,13 @@ var lastExpression
 
 function render() {
 
-  var expression = $textarea.value
+  var expression, instructions, result
+
+  expression = $textarea.value
   if (expression===lastExpression) return
 
   lastExpression = expression
 
-  var instructions, result
   try {
 
     instructions = expreva.parse(expression, scope)
@@ -102,20 +103,6 @@ function render() {
     log('Parsed', instructions)
     clearError()
 
-    try {
-
-      result = expreva.evaluate(instructions, scope)
-
-      log('Result', result)
-
-      setText($result, stringify(result))
-      clearError()
-
-    } catch(e) {
-      log('Evaluate error', e)
-      clearText($result)
-      setError(e.message)
-    }
   } catch(e) {
 
     log('Parse error', e)
@@ -126,6 +113,22 @@ function render() {
 
     clearText($result)
   }
+
+  try {
+
+    result = expreva.evaluate(instructions, scope)
+
+    log('Result', result)
+
+    setText($result, stringify(result))
+    clearError()
+
+  } catch(e) {
+    log('Evaluate error', e)
+    clearText($result)
+    setError(e.message)
+  }
+
 }
 
 var debounce = function(fn, duration) {
@@ -141,6 +144,7 @@ var scheduleRender = debounce(render, 50)
 
 $runAction.addEventListener('click', function() {
   scheduleRender()
+  $textarea.focus()
 })
 
 function renderExpr(el) {

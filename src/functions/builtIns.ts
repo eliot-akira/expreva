@@ -34,6 +34,7 @@ import {
   insert,
   slice,
   search,
+  sort,
 
   keys,
   values,
@@ -106,6 +107,7 @@ export const functions = {
   insert,
   slice,
   search,
+  sort,
 
   keys,
   values,

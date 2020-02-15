@@ -10,11 +10,7 @@ export const TCOLON = 'TCOLON'
 export const TELLIPSIS = 'TELLIPSIS'
 export const TSEMICOLON = 'TSEMICOLON'
 
-const tokens = {
-  TEOF, TOP, TNAME, TNUMBER, TSTRING, TPAREN, TBRACKET, TCOMMA, TCOLON, TELLIPSIS, TSEMICOLON
-} as const
-
-export type TokenType = keyof typeof tokens
+export type TokenType = 'TEOF' | 'TOP' | 'TNAME' | 'TNUMBER' | 'TSTRING' | 'TPAREN' | 'TBRACKET' | 'TCOMMA' | 'TCOLON' | 'TELLIPSIS' | 'TSEMICOLON'
 export type TokenValue = string | number
 
 export class Token {

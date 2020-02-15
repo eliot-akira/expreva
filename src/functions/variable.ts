@@ -1,6 +1,4 @@
 
-// TODO: Reconsider global/local variables
-
 export function set(obj, name?: string | object, value?) {
 
   if (typeof name==='undefined') return (...args) => set(obj, ...args)
@@ -14,6 +12,10 @@ export function set(obj, name?: string | object, value?) {
     } else if (obj==='global') {
       Object.assign(this.global.scope, name)
     } else {
+
+      // TODO: Reconsider global/local variables
+      // Perhaps use ":=" as setCreate to ensure global assignment?
+
       this.global.scope[obj] = name
     }
 

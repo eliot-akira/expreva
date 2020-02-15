@@ -1,8 +1,7 @@
 /*!
 Expreva started as a fork of:
 [Mathematical Expression Evaluator](https://github.com/silentmatt/expr-eval)
-Based on [ndef.parser](http://www.undefined.ch/mparser/index.html) by Raphael Graf(r@undefined.ch)
-Ported to JavaScript and modified by Matthew Crumley (email@matthewcrumley.com, http://silentmatt.com/)
+Ported and modified from [ndef.parser](http://www.undefined.ch/mparser/index.html) by Raphael Graf(r@undefined.ch)
 */
 
 import parse from './parse'

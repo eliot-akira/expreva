@@ -1,6 +1,10 @@
 
 // TODO: Support BigInt, precision float
 
+function limitPrecision(i) {
+  return parseFloat(i.toFixed(10))
+}
+
 export function add(a, b) {
   if (Array.isArray(a)) {
     if (Array.isArray(b)) {
@@ -14,19 +18,23 @@ export function add(a, b) {
     Object.assign(a, b)
     return a
   }
-  return a + b //Number(a) + Number(b)
+  if (typeof a==='string' || typeof b==='string') {
+    return a+b
+  }
+
+  return limitPrecision(a + b) //Number(a) + Number(b)
 }
 
 export function subtract(a, b) {
-  return a - b
+  return limitPrecision(a - b)
 }
 
 export function multiply(a, b) {
-  return a * b
+  return limitPrecision(a * b)
 }
 
 export function divide(a, b) {
-  return a / b
+  return limitPrecision(a / b)
 }
 
 export function modulo(a, b) {
