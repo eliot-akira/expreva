@@ -2,7 +2,7 @@
 
 Expreva is a small language based on arithmetic and algebra expressions.
 
-![](screenshot.jpg)
+![](screenshot.png)
 
 ## Overview
 
