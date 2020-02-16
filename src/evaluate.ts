@@ -60,7 +60,11 @@ export class RuntimeError extends Error {
  /**
   * Bind variables to environment for function scope
   */
-export const bindEnv = function(ast: SyntaxTree, env: RuntimeEnvironment, exprs: Expression): RuntimeEnvironment {
+export const bindFunctionScope = function(
+  env: RuntimeEnvironment,
+  ast: SyntaxTree,  // Argument definition
+  exprs: Expression // Called with arguments
+): RuntimeEnvironment {
 
   const boundEnv = env.clone()
 
@@ -153,7 +157,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       try {
         return evaluate(ast[1] as Expression, env)
       } catch (e) {
-        return evaluate(ast[2][2], bindEnv([ ast[2][1] ], env, [e]))
+        return evaluate(ast[2][2], bindFunctionScope(env, [ ast[2][1] ], [e]))
       }
 
     // Define new function
@@ -161,10 +165,14 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
 
       const f: Lambda = Object.assign(
         (...args: any) => {
-          return evaluate(ast[2] as Expression, bindEnv(ast[1] as Expression, env, args))
+          return evaluate(ast[2] as Expression, bindFunctionScope(env, ast[1] as Expression, args))
         },
         {
-          ast: [ast[2] as Expression, env, ast[1] as Expression] as LambdaProps
+          ast: [
+            ast[2] as Expression, // Function body
+            env,
+            ast[1] as Expression  // Argument definition
+          ] as LambdaProps
         }
       )
       return f
@@ -224,15 +232,19 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
     if (Array.isArray(f) && f[0]==='lambda') {
       // Function in environment defined as list form
       ast = f[2]
-      env = bindEnv(f[1], env, el.slice(1))
+      env = bindFunctionScope(env, f[1], el.slice(1))
       continue
     }
 
     if (f instanceof Function) {
       // Lambda
       if (f.ast) {
-        ast = f.ast[0]
-        env = bindEnv(f.ast[2], f.ast[1], el.slice(1))
+        ast = f.ast[0]            // Function body
+        env = bindFunctionScope(
+          f.ast[1],               // Environment
+          f.ast[2],               // Argument definition
+          el.slice(1)             // Called with arguments
+        )
         continue
       }
       // Function in environment
