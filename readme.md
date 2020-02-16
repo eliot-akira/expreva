@@ -6,9 +6,21 @@ Expreva is a small language based on arithmetic and algebra expressions.
 
 ## Overview
 
-The goal is to create a functional, extensible language with a Lisp-like simplicity.
+This is a parser and interpreter for the [Expreva language](https://expreva.com/), implemented in TypeScript.
 
-This project started as a fork of [`expr-eval`](https://github.com/silentmatt/expr-eval), a mathematical expression evaluator that's been ported from C to JavaScript.  It's undergoing an extensive redesign to a minimal core of a parser and interpreter, so that most of the functionality can be built with the language itself.
+### Parser
+
+The default grammar is based on infix notation, a superset of commonly used arithmetic statements.
+
+The parser produces a syntax tree of symbolic expressions in prefix notation, as in Lisp.
+
+- [Top Down Operator Precedence - Vaughan R. Pratt](https://tdop.github.io/)
+- [Top Down Operator Precedence - Douglas Crockford](http://crockford.com/javascript/tdop/tdop.html)
+- [The Shunting Yard Algorithm](https://en.wikipedia.org/wiki/Shunting-yard_algorithm#The_algorithm_in_detail)
+
+### Interpreter
+
+The interpreter is based on a port of [minimal-lisp](https://github.com/kanaka/miniMAL), with support for lexical scope, lambda, macro, conditions, and tail-call optimization.
 
 ## Develop
 

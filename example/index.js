@@ -12,11 +12,11 @@ var $result = $('.section-result code')
 var $resultError = $('.section-error code')
 var $resultErrorContainer = $('.section-error')
 
-var scope = {}
+var env = expreva.createEnvironment()
 
 $textarea.focus()
 
-console.log('Expreva', expreva)
+console.log('expreva', expreva)
 if (window.location.hostname==='localhost') {
   expreva.log = true
 } else {
@@ -48,23 +48,20 @@ function stringify(val) {
     ? 'function '+val.name+'()'
     : typeof val==='undefined'
       ? '' //'undefined'
-      : typeof val==='object'
-        ? JSON.stringify(val, function(key, value) {
-          if (!key) return value
-          return value instanceof Function ? stringify(value) : value
-        }, 2).replace(/"/g, '\'')
-        : typeof val==='string'
-          ? val.replace(/"/g, '\'')
-          : (val==null ? '' : val)
+      : Array.isArray(val)
+        ? val.map(v => stringify(v)).join("\n")
+        : typeof val==='object'
+          ? JSON.stringify(val, function(key, value) {
+            if (!key) return value
+            return value instanceof Function ? stringify(value) : value
+          }, 2).replace(/"/g, '\'')
+          : typeof val==='string'
+            ? val.replace(/"/g, '\'')
+            : (val==null ? '' : val)
 }
 
 function renderInstructions(instr) {
-  var str = ''
-  instr = instr || []
-  for (let i=0, len=instr.length; i < len; i++) {
-    str += instr[i]+'\n'
-  }
-  return str
+  return expreva.toFormattedString(instr)
 }
 
 function clearError() {
@@ -90,7 +87,7 @@ function render() {
 
   try {
 
-    instructions = expreva.parse(expression, scope)
+    instructions = expreva.parse(expression, env)
 
     if (!instructions) {
       log('Empty result after parse')
@@ -116,7 +113,7 @@ function render() {
 
   try {
 
-    result = expreva.evaluate(instructions, scope)
+    result = expreva.evaluate(instructions, env)
 
     log('Result', result)
 
@@ -140,12 +137,14 @@ var debounce = function(fn, duration) {
   }
 }
 
-var scheduleRender = debounce(render, 50)
+var scheduleRender = debounce(render, 10)
 
 $runAction.addEventListener('click', function() {
   scheduleRender()
   $textarea.focus()
 })
+
+$textarea.addEventListener('keyup', () => setTimeout(render(), 0))
 
 function renderExpr(el) {
   $textarea.value = el.innerText

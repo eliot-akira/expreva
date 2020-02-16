@@ -1,6 +1,6 @@
 {
   "name": "expreva",
-  "version": "2.0.1",
+  "version": "2.0.0",
   "description": "Expreva - A language based on arithmetic and algebra expressions",
   "scripts": {
     "dev": "concurrently --raw \"rollup -c rollup.config.js -w\" \"node dev-server\"",

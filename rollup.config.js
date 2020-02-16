@@ -57,24 +57,24 @@ export default [
       file: pkg.browser,
     }
   },
-  {
-    ...commonOptions,
-    input: 'src/extend/math.ts',
-    output: {
-      ...commonOptions.output,
-      name: 'expreva.math',
-      file: 'build/expreva.math.js',
-    },
-  },
-  // lodash/fp
-  // @see https://github.com/lodash/lodash/wiki/FP-Guide
-  {
-    ...commonOptions,
-    input: 'src/extend/lodash.ts',
-    output: {
-      ...commonOptions.output,
-      name: 'expreva.lodash',
-      file: 'build/expreva.lodash.js',
-    },
-  },
+  // {
+  //   ...commonOptions,
+  //   input: 'src/extend/math.ts',
+  //   output: {
+  //     ...commonOptions.output,
+  //     name: 'expreva.math',
+  //     file: 'build/expreva.math.js',
+  //   },
+  // },
+  // // lodash/fp
+  // // @see https://github.com/lodash/lodash/wiki/FP-Guide
+  // {
+  //   ...commonOptions,
+  //   input: 'src/extend/lodash.ts',
+  //   output: {
+  //     ...commonOptions.output,
+  //     name: 'expreva.lodash',
+  //     file: 'build/expreva.lodash.js',
+  //   },
+  // },
 ]
