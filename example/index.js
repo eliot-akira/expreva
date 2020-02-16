@@ -109,6 +109,7 @@ function render() {
     $instructions.innerText = renderInstructions(expreva.instructions)
 
     clearText($result)
+    return
   }
 
   try {
