@@ -14,8 +14,11 @@ The default grammar is based on infix notation, a superset of commonly used arit
 
 The parser produces a syntax tree of symbolic expressions in prefix notation, as in Lisp.
 
+#### References
+
 - [Top Down Operator Precedence - Vaughan R. Pratt](https://tdop.github.io/)
 - [Top Down Operator Precedence - Douglas Crockford](http://crockford.com/javascript/tdop/tdop.html)
+- [Pratt Parsers: Expression Parsing Made Easy](http://journal.stuffwithstuff.com/2011/03/19/pratt-parsers-expression-parsing-made-easy/)
 - [The Shunting Yard Algorithm](https://en.wikipedia.org/wiki/Shunting-yard_algorithm#The_algorithm_in_detail)
 
 ### Interpreter
