@@ -12,18 +12,36 @@ export const toString = (
 
 export const toFormattedString = (
   expr: Expression,
-  indentNum: number = 0,
-  inner: boolean = false
+  internalProps?: { [key: string]: any }
 ): string => {
-  const indent = ' '.repeat(indentNum)
+  const {
+    indent = 0,
+    childIndent = indent,
+    inner = false
+  } = internalProps || {}
+
+  const spaces = ' '.repeat(indent)
+
   return !Array.isArray(expr)
-    ? (inner ? `${indent}${expr}` : '')
-      : expr && expr[1] && typeof expr[0]==='string'
-        ? `${indent}(${expr[0]}\n${
-          // toFormattedString(expr.slice(1), indentNum + 1, true)
-          expr.slice(1).map(e => toFormattedString(e, indentNum+1, true)).join('\n')
+    ? (inner ? `${spaces}${expr}` : '')
+      : typeof expr[0]!=='string'
+        ? `${spaces}(${
+          expr.map(e => toFormattedString(e, {
+            indent: !Array.isArray(e) ? indent+1 : indent,
+            childIndent: childIndent+1, inner: true})).join('\n')
         })`
-        : `${
-          expr.map(e => toFormattedString(e, indentNum, true)).join('\n')
-        }`
+        : `${spaces}(${expr[0]==='lambda' ? 'λ' : expr[0]}${
+          expr[1]==null ? ''
+            : (expr[0]==='lambda'
+                // Argument list
+                ? ' ('+(expr[1] as []).join(' ')+')'
+                // First argument on same line as function name
+                : ' '+toFormattedString(expr[1], { indent: 0, childIndent: childIndent+((expr[0]+'').length)+2, inner: true })
+              )+(expr[2]==null ? ''
+                    : "\n"+(
+                      expr.slice(2).map(e => toFormattedString(e, {
+                        indent: childIndent+( expr[0]==='lambda' ? 1 : (expr[0]+'').length )+2, // +"("+name+space+"("
+                        inner: true
+                      })).join('\n')))
+        })`
 }
