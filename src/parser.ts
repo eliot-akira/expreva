@@ -17,7 +17,6 @@ export class Parser {
   public tokens: Token[] = []
   public cursor: number = 0
   public expressions: Expression[] = []
-  public nextExpressions: Expression[] = []
 
   constructor(lexer?: Lexer) {
     if (lexer) this.lexer = lexer
@@ -42,7 +41,6 @@ export class Parser {
     // Second pass
     this.cursor = 0
     this.expressions = []
-    this.nextExpressions = []
 
     do {
 
@@ -51,8 +49,6 @@ export class Parser {
       if (expr==null) continue
       if (!Array.isArray(expr)) expr = [expr]
       if (!expr.length) continue
-
-      expr = this.handleNextExpressions(expr as Expression)
 
       this.expressions.push(expr as Expression)
 
@@ -104,49 +100,9 @@ export class Parser {
           : token.infix(this, expr)
       )
 
-      expr = this.handleNextExpressions(expr)
       token = this.current()
     }
 
-    expr = this.handleNextExpressions(expr)
-    return expr
-  }
-
-  popExpression() {
-    return this.expressions.pop()
-  }
-
-  pushExpression(expr: Expression) {
-    this.expressions.push(expr)
-  }
-
-  pushNextExpression(expr: Expression) {
-    this.nextExpressions.push(expr)
-  }
-
-  handleNextExpressions(expr: Expression | void) {
-
-    expr = this.expandStatements(expr) as Expression
-    if (!this.nextExpressions.length) return expr
-
-    expr = [
-      'do',
-      ...(expr==null ? []
-        : !Array.isArray(expr) ? [expr]
-          : expr.filter(e => e!==';')
-      ),
-      ...this.nextExpressions
-    ]
-
-    this.nextExpressions = []
-    return expr
-  }
-
-  expandStatements(expr: Expression | void) {
-    if (Array.isArray(expr) && expr.indexOf(';')>=0) {
-      this.nextExpressions.push(...(expr as []).filter(e => e!==';'))
-      return
-    }
     return expr
   }
 
