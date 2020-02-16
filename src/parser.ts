@@ -75,8 +75,8 @@ export class Parser {
    * The value of `rightBindingPower` determines how much the expression binds to
    * the right.
    *
-   * The `prefix` and `infix` methods of tokens call this function to extract expressions on
-   * left or right side.
+   * The `prefix` and `infix` methods of tokens call this function recursively to
+   * extract expressions.
    */
   nextExpression(rightBindingPower: number = 0): Atom | void {
 
@@ -95,8 +95,7 @@ export class Parser {
 
       expr = this.expandArguments(
         // Statement separator can leave undefined on left side
-        expr==null
-          ? token.prefix(this)
+        expr==null ? token.prefix(this)
           : token.infix(this, expr)
       )
 
