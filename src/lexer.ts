@@ -75,7 +75,7 @@ export class Lexer {
         }
 
         if (!progressed) {
-          throw new ParseError(`Unable to tokenize at line ${lineIndex+1} column ${columnIndex+1}`)
+          throw new ParseError(`Unable to tokenize at line ${lineIndex+1} column ${columnIndex+1}: ${line}`)
         }
       }
     }

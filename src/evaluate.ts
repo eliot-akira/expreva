@@ -26,7 +26,7 @@ export class Environment {
   static core: EnvironmentProps = {}
   static defaultEnv: RuntimeEnvironment
 
-  private envProps: EnvironmentProps
+  // private envProps: EnvironmentProps
 
   constructor(givenEnv?: EnvironmentProps) {
 
@@ -37,12 +37,10 @@ export class Environment {
         ? props[key].bind(this)
         : props[key]
     })
-
-    this.envProps = props
   }
 
   clone() {
-    return new Environment(this.envProps)
+    return new Environment(this)
   }
 }
 
@@ -66,7 +64,9 @@ export const bindEnv = function(ast: SyntaxTree, env: RuntimeEnvironment, exprs:
 
   const boundEnv = env.clone()
 
-  ast.some((a, i) => a == '&' ? boundEnv[ ast[i + 1] as string ] = exprs.slice(i)
+  ast.some((a, i) => a == '&'
+    // Spread arguments
+    ? boundEnv[ ast[i + 1] as string ] = exprs.slice(i)
     : (boundEnv[ a as string ] = exprs[i], 0))
 
   return boundEnv
@@ -79,9 +79,9 @@ export const evaluateExpression = function(ast: SyntaxTree, env: RuntimeEnvironm
     : (typeof ast == 'string')                              // Symbol?
       ? ast in env                                          // Symbol in env?
         ? env[ast]                                          // Lookup symbol
-        : env.throw({
+        : undefined /*env.throw({
           message: `Undefined symbol "${ast}"`              // Undefined symbol
-        })
+        })*/
       : ast                                                 // Unchanged
 }
 
@@ -158,10 +158,11 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
 
     // Define new function
     case 'lambda': {
+
       const f: Lambda = Object.assign(
-        (...args: any) =>
-          evaluate(ast[2] as Expression, bindEnv(ast[1] as Expression, env, args))
-        ,
+        (...args: any) => {
+          return evaluate(ast[2] as Expression, bindEnv(ast[1] as Expression, env, args))
+        },
         {
           ast: [ast[2] as Expression, env, ast[1] as Expression] as LambdaProps
         }
@@ -183,7 +184,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       })
 
       ast = ast[2] as Expression
-      continue // while(true)
+      continue
 
     // Multiple forms for side-effects
     case 'do':
@@ -194,50 +195,52 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
 
       // Tail
       ast = ast[ last ] as Expression
-      continue // while(true)
+      continue
 
     // Conditional branches
     case 'if':
-      if (!ast[1]) return env.throw({
+      if (ast[1]==null) return env.throw({
         message: 'No condition for if'
       })
-      if (!ast[2]) return env.throw({
+      if (ast[2]==null) return env.throw({
         message: 'No true branch for if'
       })
-      if (!ast[3]) {
+      if (ast[3]==null) {
         // No else branch
         if (!evaluate(ast[1] as Expression, env)) return
         ast = ast[2] as Expression
-        continue // while(true)
+        continue
       }
       ast = (evaluate(ast[1] as Expression, env) ? ast[2] : ast[3]) as Expression
-      continue // while(true)
+      continue
     }
 
     // Invoke list form
 
     const el = evaluateExpression(ast, env)
-    const f = el[0]
+    const f = el instanceof Function ? el : el[0]
     if (f==null) return
 
-    if (Array.isArray(f) && f[0]==='fn') {
+    if (Array.isArray(f) && f[0]==='lambda') {
       // Function in environment defined as list form
       ast = f[2]
       env = bindEnv(f[1], env, el.slice(1))
       continue
     }
 
-    if (f.ast) {
-      ast = f.ast[0]
-      env = bindEnv(f.ast[2], f.ast[1], el.slice(1))
-      continue
-    }
-
     if (f instanceof Function) {
+      // Lambda
+      if (f.ast) {
+        ast = f.ast[0]
+        env = bindEnv(f.ast[2], f.ast[1], el.slice(1))
+        continue
+      }
+      // Function in environment
       return f(...el.slice(1))
     }
 
-    return // Return self? el
+    // Calling a primitive value returns itself
+    return f
   }
 }
 
@@ -247,10 +250,14 @@ Environment.core = {
   true: true,
   false: false,
 
-  '+': (a: number, b: number): number => a + b,
-  '-': (a: number, b: number): number => a - b,
-  '*': (a: number, b: number): number => a * b,
-  '/': (a: number, b: number): number => a / b,
+  '+': (a: number = 0, b: number = 0): number => a + b,
+  '-': (a: number = 0, b: number = 0): number => a - b,
+  '*': (a: number = 1, b: number = 1): number => a * b,
+  '/': (a: number = 0, b: number = 1): number => a / b,
+
+  '!': (a: any): boolean => !a,
+  '||': (a: any, b: any): boolean => a || b,
+  '&&': (a: any, b: any): boolean => a && b,
 
   '==': (a: any, b: any): boolean => a === b,
   '!=': (a: any, b: any): boolean => a !== b,
@@ -259,7 +266,7 @@ Environment.core = {
   '>': (a: any, b: any): boolean => a > b,
   '>=': (a: any, b: any): boolean => a >= b,
 
-  list: (...args: any[]) => args, // ['fn', ['&', 'a'], 'a']
+  list: (...args: any[]) => args, // ['lambda', ['&', 'a'], 'a']
   map: (arr: any[], fn: (value: any, index?: number) => any) => arr.map(fn),
 
   eva(ast: Expression) {

@@ -48,7 +48,7 @@ export class Parser {
 
       let expr = this.nextExpression()
 
-      if (!expr) expr = []
+      if (expr==null) continue
       if (!Array.isArray(expr)) expr = [expr]
       if (!expr.length) continue
 
@@ -82,7 +82,7 @@ export class Parser {
    * The `prefix` and `infix` methods of tokens call this function to extract expressions on
    * left or right side.
    */
-  nextExpression(rightBindingPower: number = 0): Expression | void {
+  nextExpression(rightBindingPower: number = 0): Atom | void {
 
     let token = this.current()
     if (!token) return
@@ -98,16 +98,17 @@ export class Parser {
       this.next()
 
       expr = this.expandArguments(
-        token.infix(this, expr)
+        // Statement separator can leave undefined on left side
+        expr==null
+          ? token.prefix(this)
+          : token.infix(this, expr)
       )
 
       expr = this.handleNextExpressions(expr)
-
       token = this.current()
     }
 
     expr = this.handleNextExpressions(expr)
-
     return expr
   }
 
@@ -128,22 +129,16 @@ export class Parser {
     expr = this.expandStatements(expr) as Expression
     if (!this.nextExpressions.length) return expr
 
-    if (Array.isArray(expr)) {
-      if (expr[0]==='do') {
-        expr.push(...this.nextExpressions)
-      } else if (expr.indexOf(';')>=0) {
-        expr = ['do', ...expr.filter(e => e!==';'), ...this.nextExpressions]
-      } else {
-        expr = ['do', expr, ...this.nextExpressions]
-      }
-    } else if (expr==null) {
-      expr = ['do', ...this.nextExpressions]
-    } else {
-      expr = ['do', expr, ...this.nextExpressions]
-    }
+    expr = [
+      'do',
+      ...(expr==null ? []
+        : !Array.isArray(expr) ? [expr]
+          : expr.filter(e => e!==';')
+      ),
+      ...this.nextExpressions
+    ]
 
     this.nextExpressions = []
-
     return expr
   }
 

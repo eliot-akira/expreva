@@ -144,7 +144,10 @@ $runAction.addEventListener('click', function() {
   $textarea.focus()
 })
 
-$textarea.addEventListener('keyup', () => setTimeout(render(), 0))
+$textarea.addEventListener('keyup', () => {
+  if ($textarea.value===lastExpression) return
+  setTimeout(render(), 0)
+})
 
 function renderExpr(el) {
   $textarea.value = el.innerText

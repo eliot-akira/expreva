@@ -10,17 +10,17 @@ test('function', it => {
 
   is('(x => x * x)(3)', 9)
   is('((x, y) => x * y)(3, 4)', 12)
+  is('(x => y => x * y)(3)(4)', 12)
   is('(x => y => z => x * y * z)(3)(4)(5)', 60)
   is('percent = x => x / 100; percent(2)', 2/100)
 
   is('f = (x, y) => x ; f(true, () => 1)', true)
-  is('f = (x, y) => y ; f(true, () => 1)', r => r instanceof Function)
 
 })
 
-test('function default arguments', it => {
-  const is = eva(it)
-  is('f = (x = 1, y = 2) => x + y f()', 3)
-  is('f = (x = 1, y = 2) => x + y f(3)', 5)
-  is('f = (x = 1, y = 2) => x + y f(3, 4)', 7)
-})
+// test('function default arguments', it => {
+//   const is = eva(it)
+//   is('f = (x = 1, y = 2) => x + y f()', 3)
+//   is('f = (x = 1, y = 2) => x + y f(3)', 5)
+//   is('f = (x = 1, y = 2) => x + y f(3, 4)', 7)
+// })

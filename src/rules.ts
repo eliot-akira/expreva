@@ -2,20 +2,26 @@ import { Parser } from './Parser'
 import { Expression } from './evaluate'
 
 /**
- * Defines a grammar of rules for the language. It supports:
+ * Define parse syntax rules.
  *
  * - Number
  * - Number prefix `+` and `-`
  * - Symbol for variables
- * - String wrapped in double- or single-quotes, and escape characters
- * - Arithmetic operations: add, subtract, multply, divide
- * - Assignment with `=`
+ * - String wrapped in double or single quotes, and escape characters
+ * - Arithmetic operators: `+`, `-`, `*`, `/`
+ * - Assignment: `=`
+ * - Comparison: `==`, '!=', `>`, `>=`, `<`, `<=`
+ * - Conditions: `if`, `then`, `else`, `condition ? true : false`
+ * - Conditional operators: `&&`, `||`, `!`, `and`, `or`, `not`
  * - Group expression with `(` and `)`
  * - Statement separator `;`
- * - Anonymous function with arguments: `x =>` and `(x, y) =>`
- * - Function application with `arg->f`
+ * - Function call with arguments: `f(x,y)`
+ * - Function application with arguments: `x->f` and `(x, y)->f`
+ * - Anonymous function with arguments: `x => body` and `(x, y) => body`
  *
  * The order of rules below determines the order of regular expression match.
+ *
+ * Note that there must be only a single capture group.
  */
 
 export default [
@@ -27,52 +33,114 @@ export default [
       return parseFloat(this.value)
     }
   },
+
+  // Reserved words must come before symbol
+
+  {
+    match: /^\s*(if)\s*/,
+    name: 'if',
+    power: 20,
+    prefix(parser: Parser) {
+      const condition = parser.nextExpression(this.power)
+
+      let trueBranch = parser.nextExpression(this.power)
+      if (trueBranch==='then') trueBranch = parser.nextExpression(this.power)
+
+      let falseBranch = parser.nextExpression(this.power)
+      if (falseBranch==='else') falseBranch = parser.nextExpression(this.power)
+
+      return ['if', condition, trueBranch, falseBranch]
+    },
+    infix(parser: Parser, left: Expression) {
+      return left
+    },
+  },
+  {
+    match: /^\s*(or)\s*/,
+    name: '||',
+    power: 30,
+    prefix() {},
+    infix(parser: Parser, left: Expression) {
+      const right = parser.nextExpression(this.power)
+      return ['||', left, right]
+    },
+  },
+  {
+    match: /^\s*(and)\s*/,
+    name: '&&',
+    power: 30,
+    prefix() {},
+    infix(parser: Parser, left: Expression) {
+      const right = parser.nextExpression(this.power)
+      return ['&&', left, right]
+    },
+  },
+  {
+    match: /^\s*(not)\s*/,
+    name: '!',
+    power: 70,
+    prefix(parser: Parser) {
+      return ['!', parser.nextExpression(0)]
+    },
+    infix() {},
+  },
+
   {
     match: /^\s*([a-zA-Z0-9_]+)\s*/,
     name: 'symbol',
     power: 0,
     prefix(parser: Parser) {
-      return this.value
-        .trim() // This shouldn't be necessary, but still encountered trailing white space
+      return this.value.trim()
     },
   },
+
+  /**
+   * Match quoted strings with escaped characters
+   *
+   * @see https://stackoverflow.com/questions/249791/regex-for-quoted-string-with-escaping-quotes#answer-10786066
+   */
   {
-    /**
-     * Match quoted strings with escaped characters
-     *
-     * @see https://stackoverflow.com/questions/249791/regex-for-quoted-string-with-escaping-quotes#answer-10786066
-     */
-    match: /^\s*"([^"\\]*(\\.[^"\\]*)*)"|\'([^\'\\]*(\\.[^\'\\]*)*)\'/,
+    match: /^\s*\'([^\'\\]*(\\.[^\'\\]*)*)\'/,
     name: 'string',
     power: 0,
     prefix(parser: Parser) {
-      // Quick unescape
-      return ['`', JSON.parse(`"${this.value}"`)]
-    },
+      // Unwrap quotes and unescape
+      return ['`', JSON.parse(`"${this.value.slice(1, -1)}"`)]
+    }
+  },
+  {
+    match: /^\s*"([^"\\]*(\\.[^"\\]*)*)"/,
+    name: 'string',
+    power: 0,
+    prefix(parser: Parser) {
+      // Unwrap quotes and unescape
+      return ['`', JSON.parse(this.value)] // Unescape
+    }
   },
   {
     match: /^\s*;*\s*(\))\s*/, // ;)
     name: 'close expression',
     power: 0,
-    prefix(parser: Parser) {},
+    prefix() {},
     infix(parser: Parser, left: Expression[]) {},
   },
   {
     match: /^\s*(;+)\s*/,
     name: 'end statement',
     power: 0,
-    prefix(parser: Parser) {},
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(0)
-      if (!right) return left
+      if (right==null) return left
       return [left, ';', right]
     },
   },
+
   {
-    match: /^\s*(=>)\s*/,
+    match: /^\s*(=>)\s*/, // Must come before `=` or `>`
     name: 'lambda',
     power: 70,
-    prefix(parser: Parser) {},
+    prefix() {},
     infix(parser: Parser, left: Expression) {
 
       if (!parser.isArgumentList(left)) {
@@ -83,23 +151,78 @@ export default [
       return ['lambda', left, right]
     },
   },
+  // Function application: x->y === y(x)
   {
     match: /^\s*(->)\s*/, // Must come before `-` or `>`
     name: '->',
-    prefix(parser: Parser) {},
+    prefix() {},
     power: 60, // Weaker than `=>`
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(0)
+      const right = parser.nextExpression(this.power)
       if (left==null) return right
       return [right, left]
     },
   },
 
+  // Conditional
+
+  {
+    match: /^\s*(\?)\s*/,
+    name: '?',
+    power: 20,
+    prefix() {},
+    infix(parser: Parser, left: Expression) {
+      const trueBranch = parser.nextExpression(this.power)
+      const falseBranch = parser.nextExpression(this.power)
+      return ['if', left, trueBranch, falseBranch]
+    },
+  },
+  {
+    match: /^\s*(:)\s*/,
+    name: ':',
+    power: 0,
+    prefix(parser: Parser) {
+      const left = parser.nextExpression(0)
+      return left
+    },
+    infix(parser: Parser, left: Expression) {
+      const right = parser.nextExpression(0)
+      if (left && left[0] && left[0]==='if') {
+        if (right) left.push(right)
+        return left
+      }
+      // TODO: Object properties
+      return [left, right]
+    },
+  },
+
+  {
+    match: /^\s*(\|\|)\s*/,
+    name: '||',
+    power: 30,
+    prefix() {},
+    infix(parser: Parser, left: Expression) {
+      const right = parser.nextExpression(this.power)
+      return ['||', left, right]
+    },
+  },
+  {
+    match: /^\s*(&&)\s*/,
+    name: '&&',
+    power: 30,
+    prefix() {},
+    infix(parser: Parser, left: Expression) {
+      const right = parser.nextExpression(this.power)
+      return ['&&', left, right]
+    },
+  },
+
+  // Comparison
   {
     match: /^\s*(==)\s*/, // Must come before `=`
     name: '==',
-    power: 30,
-    prefix(parser: Parser) {},
+    power: 40,
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
       return ['==', left, right]
@@ -108,18 +231,29 @@ export default [
   {
     match: /^\s*(\!=)\s*/,
     name: '!=',
-    power: 30,
-    prefix(parser: Parser) {},
+    power: 40,
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
       return ['!=', left, right]
     },
   },
+
+  {
+    match: /^\s*(\!)\s*/,
+    name: '!',
+    power: 70,
+    prefix(parser: Parser) {
+      return ['!', parser.nextExpression(0)]
+    },
+    infix() {},
+  },
+
   {
     match: /^\s*(<=)\s*/,
     name: '<=',
-    power: 30,
-    prefix(parser: Parser) {},
+    power: 40,
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
       return ['<=', left, right]
@@ -128,8 +262,8 @@ export default [
   {
     match: /^\s*(<)\s*/,
     name: '<',
-    power: 30,
-    prefix(parser: Parser) {},
+    power: 40,
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
       return ['<', left, right]
@@ -138,8 +272,8 @@ export default [
   {
     match: /^\s*(>=)\s*/,
     name: '>=',
-    power: 30,
-    prefix(parser: Parser) {},
+    power: 40,
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
       return ['>=', left, right]
@@ -148,8 +282,8 @@ export default [
   {
     match: /^\s*(>)\s*/,
     name: '>',
-    power: 30,
-    prefix(parser: Parser) {},
+    power: 40,
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
       return ['>', left, right]
@@ -159,7 +293,7 @@ export default [
   {
     match: /^\s*(=)\s*/,
     name: 'set',
-    power: 20,
+    power: 10,
     prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
@@ -237,7 +371,7 @@ export default [
     match: /^\s*(\,)\s*/,
     name: 'argument separator',
     power: 5, // Stronger than )
-    prefix(parser: Parser) {},
+    prefix() {},
     infix(parser: Parser, left: Expression) {
       /**
        * Add right side to argument list

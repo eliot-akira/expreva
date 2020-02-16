@@ -6,7 +6,7 @@ export const toString = (
 ): string =>
   !Array.isArray(expr)
     ? (inner ? expr : '')
-    : `(${
+    : expr.length===1 && !Array.isArray(expr[0]) ? expr[0]+'' : `(${
       expr.map(e => toString(e as Expression, true)).join(' ')
     })`
 
