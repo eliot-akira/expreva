@@ -52,9 +52,9 @@ export class Parser {
       if (!Array.isArray(expr)) expr = [expr]
       if (!expr.length) continue
 
-      expr = this.handleNextExpressions(expr)
+      expr = this.handleNextExpressions(expr as Expression)
 
-      this.expressions.push(expr)
+      this.expressions.push(expr as Expression)
 
     } while (this.current())
 

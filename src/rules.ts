@@ -2,7 +2,7 @@ import { Parser } from './Parser'
 import { Expression } from './evaluate'
 
 /**
- * Define parse syntax rules.
+ * Define parse rules for language syntax.
  *
  * - Number
  * - Number prefix `+` and `-`
@@ -19,9 +19,24 @@ import { Expression } from './evaluate'
  * - Function application with arguments: `x->f` and `(x, y)->f`
  * - Anonymous function with arguments: `x => body` and `(x, y) => body`
  *
- * The order of rules below determines the order of regular expression match.
+ * Note that each rule's regular expression must only have a single capture group. The order
+ * of rules below determines the order in which they are matched against the source string.
  *
- * Note that there must be only a single capture group.
+ * The power ("left-binding power") determines the operator precedence, applied in
+ * `Parser.nextExpression`.
+ *
+ * Power values are based on [Douglas Crockford's article](http://crockford.com/javascript/tdop/tdop.html),
+ * with adjustments to support additional operators and syntax.
+ *
+ *   0   non-binding operators like ;
+ *  10   assignment operators like =
+ *  20   ?
+ *  30   || &&
+ *  40   relational operators like ===
+ *  50   + -
+ *  60   * /
+ *  70   unary operators like !
+ *  80   . [ (
  */
 
 export default [
@@ -57,7 +72,7 @@ export default [
   },
   {
     match: /^\s*(or)\s*/,
-    name: '||',
+    name: 'or',
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -67,7 +82,7 @@ export default [
   },
   {
     match: /^\s*(and)\s*/,
-    name: '&&',
+    name: 'and',
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -77,7 +92,7 @@ export default [
   },
   {
     match: /^\s*(not)\s*/,
-    name: '!',
+    name: 'not',
     power: 70,
     prefix(parser: Parser) {
       return ['!', parser.nextExpression(0)]
@@ -101,7 +116,7 @@ export default [
    */
   {
     match: /^\s*\'([^\'\\]*(\\.[^\'\\]*)*)\'/,
-    name: 'string',
+    name: 'single-quoted string',
     power: 0,
     prefix(parser: Parser) {
       // Unwrap quotes and unescape
@@ -110,15 +125,16 @@ export default [
   },
   {
     match: /^\s*"([^"\\]*(\\.[^"\\]*)*)"/,
-    name: 'string',
+    name: 'double-quoted string',
     power: 0,
     prefix(parser: Parser) {
       // Unwrap quotes and unescape
       return ['`', JSON.parse(this.value)] // Unescape
     }
   },
+
   {
-    match: /^\s*;*\s*(\))\s*/, // ;)
+    match: /^\s*;*\s*(\))\s*/, // ), ;)
     name: 'close expression',
     power: 0,
     prefix() {},
@@ -136,6 +152,42 @@ export default [
     },
   },
 
+  // Function
+
+  {
+    match: /^\s*(\,)\s*/,
+    name: 'argument separator',
+    power: 5, // Stronger than )
+    prefix() {},
+    infix(parser: Parser, left: Expression) {
+      /**
+       * Add right side to argument list
+       */
+      const right = parser.nextExpression(70) // Stronger than `->`
+      let args: Expression = ['args..']
+
+      if (parser.isArgumentList(left)) {
+        args = left
+      } else if (left!=null) {
+        args.push(left)
+      }
+      if (right!=null) args.push(right)
+      return args
+    }
+  },
+  // Function application: x->y === y(x)
+  {
+    match: /^\s*(->)\s*/, // Must come before `-` or `>`
+    name: '->',
+    prefix() {},
+    power: 60, // Weaker than `=>`
+    infix(parser: Parser, left: Expression) {
+      const right = parser.nextExpression(this.power)
+      if (left==null) return right
+      return [right, left]
+    },
+  },
+  // Function definition: x=>, (x)=>, (x, y)=>
   {
     match: /^\s*(=>)\s*/, // Must come before `=` or `>`
     name: 'lambda',
@@ -149,18 +201,6 @@ export default [
 
       const right = parser.nextExpression(0)
       return ['lambda', left, right]
-    },
-  },
-  // Function application: x->y === y(x)
-  {
-    match: /^\s*(->)\s*/, // Must come before `-` or `>`
-    name: '->',
-    prefix() {},
-    power: 60, // Weaker than `=>`
-    infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
-      if (left==null) return right
-      return [right, left]
     },
   },
 
@@ -349,6 +389,7 @@ export default [
       return ['/', left, right]
     },
   },
+
   {
     match: /^\s*(\()\s*/,
     name: 'open expression',
@@ -366,26 +407,5 @@ export default [
       if (left==null) return right
       return [left, right]
     },
-  },
-  {
-    match: /^\s*(\,)\s*/,
-    name: 'argument separator',
-    power: 5, // Stronger than )
-    prefix() {},
-    infix(parser: Parser, left: Expression) {
-      /**
-       * Add right side to argument list
-       */
-      const right = parser.nextExpression(70) // Stronger than `->`
-      let args: Expression = ['args..']
-
-      if (parser.isArgumentList(left)) {
-        args = left
-      } else if (left!=null) {
-        args.push(left)
-      }
-      if (right!=null) args.push(right)
-      return args
-    }
   },
 ]

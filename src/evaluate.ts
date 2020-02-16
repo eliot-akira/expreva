@@ -2,7 +2,7 @@
  * This is a Lisp interpreter based on [miniMAL](https://github.com/kanaka/miniMAL) ported to TypeScript.
  */
 
-export type Atom = number | string | Atom[]
+export type Atom = number | string | boolean | { [key: string]: any } | Atom[]
 export type Expression =  Atom[]
 export type SyntaxTree = Expression
 
@@ -87,11 +87,11 @@ export const evaluateExpression = function(ast: SyntaxTree, env: RuntimeEnvironm
 
 export function expandMacro(ast: SyntaxTree, env: RuntimeEnvironment): SyntaxTree {
   while (ast instanceof Array
-    && !Array.isArray(ast[0])
+    && typeof ast[0]==='string'
     && ast[0] in env
-    && env[ast[0]].isMacro
+    && env[ ast[0] ].isMacro
   ) {
-    ast = env[ast[0]](...ast.slice(1))
+    ast = env[ ast[0] ](...ast.slice(1))
   }
   return ast
 }
