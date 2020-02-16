@@ -175,10 +175,12 @@ export class Parser {
     // Function call arguments: f(x, y, z)
 
     const args = expr.pop()
+
     if (!Array.isArray(args)) {
       if (args) expr.push(args)
       return expr
     }
+
     ;(args as []).shift() // Remove keyword
     return expr.concat(args as Expression)
   }
@@ -192,8 +194,11 @@ export class Parser {
    */
   handleUnexpandedArguments(expr) {
     if (!expr || !Array.isArray(expr)) return expr
+    if (this.isArgumentList(expr)) {
+      expr[0] = 'list'
+    }
     for (let i=0, len=expr.length; i < len; i++) {
-      if (expr[i] && expr[i][0]==='args..') {
+      if (this.isArgumentList(expr[i])) {
         expr[i][0] = 'list'
       } else {
         expr[i] = this.handleUnexpandedArguments(expr[i])

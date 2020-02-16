@@ -218,7 +218,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
 
     const el = evaluateExpression(ast, env)
     const f = el[0]
-    if (!f) return
+    if (f==null) return
 
     if (Array.isArray(f) && f[0]==='fn') {
       // Function in environment defined as list form
@@ -237,7 +237,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       return f(...el.slice(1))
     }
 
-    return el
+    return // Return self? el
   }
 }
 

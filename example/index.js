@@ -81,7 +81,7 @@ function render() {
   var expression, instructions, result
 
   expression = $textarea.value
-  if (expression===lastExpression) return
+  // if (expression===lastExpression) return
 
   lastExpression = expression
 

@@ -13,7 +13,6 @@ const eva = it => (k, v) => {
 
 const parse = expreva.parse.bind(expreva)
 const evaluate = expreva.evaluate.bind(expreva)
+const toString = expreva.toString.bind(expreva)
 
-const { Instruction, Token } = expreva
-
-module.exports = { eva, parse, evaluate, Instruction, Token }
+module.exports = { eva, parse, evaluate, toString }

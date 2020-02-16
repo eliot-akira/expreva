@@ -60,7 +60,7 @@ export default [
   {
     match: /^\s*(;+)\s*/,
     name: 'end statement',
-    power: 10,
+    power: 0,
     prefix(parser: Parser) {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(0)
@@ -84,12 +84,13 @@ export default [
     },
   },
   {
-    match: /^\s*(->)\s*/, // Must come before `>`
+    match: /^\s*(->)\s*/, // Must come before `-` or `>`
     name: '->',
     prefix(parser: Parser) {},
     power: 60, // Weaker than `=>`
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(0)
+      if (left==null) return right
       return [right, left]
     },
   },
@@ -228,7 +229,7 @@ export default [
       const right = parser.nextExpression(0)
       // Parse to right parenthesis
       parser.nextExpression(this.power)
-      if (left===null) return right
+      if (left==null) return right
       return [left, right]
     },
   },
@@ -241,14 +242,16 @@ export default [
       /**
        * Add right side to argument list
        */
-      const right = parser.nextExpression(this.power)
+      const right = parser.nextExpression(70) // Stronger than `->`
+      let args: Expression = ['args..']
 
-      if (!parser.isArgumentList(left)) {
-        left = ['args..', left]
+      if (parser.isArgumentList(left)) {
+        args = left
+      } else if (left!=null) {
+        args.push(left)
       }
-
-      if (right) left.push(right)
-      return left
+      if (right!=null) args.push(right)
+      return args
     }
   },
 ]

@@ -7,17 +7,17 @@ test('expreva', it => {
 
 require('./parse')
 
-require('./arithmetic')
-require('./comparison')
-require('./conditional')
+// require('./arithmetic')
+// require('./comparison')
+// require('./conditional')
 
-require('./assignment')
+// require('./assignment')
 
-require('./list')
-require('./object')
-require('./member')
-require('./statement')
+// require('./list')
+// require('./object')
+// require('./member')
+// require('./statement')
 
-require('./function')
-require('./apply')
-require('./spread')
+// require('./function')
+// require('./apply')
+// require('./spread')

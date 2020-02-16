@@ -1,16 +1,16 @@
-const { parse, evaluate, Instruction } = require('./common')
+const { parse, evaluate, toString } = require('./common')
 
 test('parse', it => {
 
   let instructions = parse('1')
 
   it('parses', instructions)
-  it('returns instructions', it.is(instructions, [new Instruction('INUMBER', 1)]))
+  it('returns instructions', it.is(instructions, [1]))
   it('instructions are evaluated', it.is(evaluate(instructions), 1))
 })
 
 test('parse invalid', it => {
-  const invalidExpressions = [
+  const exprs = [
     '(',
     ')',
     '{',
@@ -24,24 +24,39 @@ test('parse invalid', it => {
     ':'
   ]
 
-  for (const expr of invalidExpressions) {
-    it(expr, it.throws(() => parse(expr)))
+  for (const expr of exprs) {
+    it(expr, it.throws(() => parse(expr)) || it.is(parse(expr), []))
   }
 })
 
 test('parse valid', it => {
-  const validExpressions = [
+  const exprs = [
     '()',
-    '{}',
-    '[]',
-    'a={} a.b',
-    '[1,2]',
     '1->()',
-    'true?1:0',
-    '{a:1}'
+    'f=x=>x;f(1)'
+    // 'true?1:0',
+    // '{a:1}',
+    // '[]',
+    // '[1,2]',
+    // '{}',
+    // 'a={} a.b',
   ]
 
-  for (const expr of validExpressions) {
+  for (const expr of exprs) {
     it(expr, !it.throws(() => parse(expr)))
+  }
+})
+
+test('parse statements', it => {
+  const exprs = {
+    'f=x=>x;f(1)': '(do (set f (lambda (x) x)) (f 1))',
+    '(f=x=>x);f(1)': '(do (set f (lambda (x) x)) (f 1))',
+    'f=x=>x;1->f': '(do (set f (lambda (x) x)) (f 1))',
+    'f=x=>x;(1)->f': '(do (set f (lambda (x) x)) (f 1))',
+    'f=x=>x;(1,2)->f': '(do (set f (lambda (x) x)) (f 1 2))',
+  }
+
+  for (const key of Object.keys(exprs)) {
+    it(key, it.is(toString(parse(key)), exprs[key]))
   }
 })

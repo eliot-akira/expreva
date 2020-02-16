@@ -18,9 +18,7 @@ export const toFormattedString = (
   const indent = ' '.repeat(indentNum)
   return !Array.isArray(expr)
     ? (inner ? `${indent}${expr}` : '')
-    : expr[0]==null
-      ? ''
-      : expr[1] && typeof expr[0]==='string'
+      : expr && expr[1] && typeof expr[0]==='string'
         ? `${indent}(${expr[0]}\n${
           // toFormattedString(expr.slice(1), indentNum + 1, true)
           expr.slice(1).map(e => toFormattedString(e, indentNum+1, true)).join('\n')
