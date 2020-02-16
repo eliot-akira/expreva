@@ -12,7 +12,7 @@ Expreva is a cross-platform, modular and extensible language and virtual machine
 
 It's an exploration in progress, to design a suitable medium for end-user programming, for example: in a spreadsheet formula; as a data transport or query protocol; dynamic content creation such as web documents and interactive textbooks.
 
-The goal is to stay simple enough to learn and implement. Currently it runs in the web browser, and servide-side on Node.js and PHP. An eventual plan is to compile to Web Assembly.
+The goal is to stay simple enough to learn and implement. Currently it runs in the web browser, servide-side on Node.js and PHP. An eventual plan is to compile to WebAssembly.
 
 ### Parser
 
