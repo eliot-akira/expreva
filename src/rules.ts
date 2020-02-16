@@ -22,8 +22,9 @@ import { Expression } from './evaluate'
  * Note that each rule's regular expression must only have a single capture group. The order
  * of rules below determines the order in which they are matched against the source string.
  *
- * The power ("left-binding power") determines the operator precedence, applied in
- * `Parser.nextExpression`.
+ * ---
+ *
+ * A token's power ("left-binding power") determines the operator precedence.
  *
  * Power values are based on [Douglas Crockford's article](http://crockford.com/javascript/tdop/tdop.html),
  * with adjustments to support additional operators and syntax.

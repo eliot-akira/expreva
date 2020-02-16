@@ -18,6 +18,7 @@ import { Expression } from './evaluate'
  * `led` or "left denotation".
  *
  * The property `$power` ("left-binding power") determines how tightly the token binds to the left.
+ *
  * For example:
  *
  *   a OP1 b OP2 c
@@ -29,6 +30,9 @@ import { Expression } from './evaluate'
  *   a OP1 (b OP2 c)     // low left-binding
  *
  * Having `$power` of 0 means the token doesn't bind at all, e.g. statement separators.
+ *
+ * The left-binding power is compared with a right-binding value, passed when a token's prefix or
+ * infix method calls the parser for the next expression.
  */
 
 export class Token {
