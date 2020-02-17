@@ -19,7 +19,6 @@ export type EnvironmentProps = {
   [key: string]: any // Any variable value, function, or expression
 }
 
-
 export class Environment {
 
   // See bottom of file for core definitions
@@ -107,15 +106,12 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
   while (true) {
 
     if (!(ast instanceof Array)) return evaluateExpression(ast, env)
-
     ast = expandMacro(ast, env)
-
     if (!(ast instanceof Array)) return evaluateExpression(ast, env)
 
     switch (ast[0]) {
 
-    // Set a variable in current environment
-    case 'set':
+    // Define a variable in environment
     case 'def': {
       const varName = ast[1] as string
       const value = evaluate(ast[2] as Expression, env)
@@ -164,9 +160,10 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
     case 'lambda': {
 
       const f: Lambda = Object.assign(
-        (...args: any) => {
-          return evaluate(ast[2] as Expression, bindFunctionScope(env, ast[1] as Expression, args))
-        },
+        (...args: any) => evaluate(
+          ast[2] as Expression,
+          bindFunctionScope(env, ast[1] as Expression, args)
+        ),
         {
           ast: [
             ast[2] as Expression, // Function body
@@ -251,7 +248,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       return f(...el.slice(1))
     }
 
-    // Calling a primitive value returns itself
+    // Primitive value returns itself
     return f
   }
 }
@@ -273,6 +270,7 @@ Environment.core = {
 
   '==': (a: any, b: any): boolean => a === b,
   '!=': (a: any, b: any): boolean => a !== b,
+
   '<': (a: any, b: any): boolean => a < b,
   '<=': (a: any, b: any): boolean => a <= b,
   '>': (a: any, b: any): boolean => a > b,

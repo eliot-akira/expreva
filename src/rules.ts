@@ -333,12 +333,12 @@ export default [
 
   {
     match: /^\s*(=)\s*/,
-    name: 'set',
+    name: 'def',
     power: 10,
     prefix() {},
     infix(parser: Parser, left: Expression) {
       const right = parser.nextExpression(this.power)
-      return ['set', left, right]
+      return ['def', left, right]
     },
   },
 

@@ -16,7 +16,7 @@ export class Parser {
   public lexer: Lexer
   public tokens: Token[] = []
   public cursor: number = 0
-  public expressions: Expression[] = []
+  public expressions: Expression = []
 
   constructor(lexer?: Lexer) {
     if (lexer) this.lexer = lexer
@@ -33,15 +33,15 @@ export class Parser {
   /**
    * Parse string and return the resulting abstract syntax tree.
    */
-  parse(input: string = ''): Expression[] {
+  parse(input: string = ''): Expression {
 
-    // First pass
     this.tokens = this.lexer.tokenize(input)
-
-    // Second pass
     this.cursor = 0
     this.expressions = []
 
+    /**
+     * Gather grouped expressions to the left
+     */
     do {
 
       let expr = this.nextExpression()
@@ -57,13 +57,12 @@ export class Parser {
     const count = this.expressions.length
     if (count===1) {
       // Unwrap expression
-      this.expressions = this.expressions[0] as Expression[]
+      this.expressions = this.expressions.shift() as Expression
     } else if (count > 1) {
       // Evaluate multiple expressions
-      this.expressions = ['do', ...this.expressions] as Expression[]
+      this.expressions.unshift('do')
     }
 
-    // Third pass
     this.expressions = this.handleUnexpandedArguments(this.expressions)
 
     return this.expressions
@@ -76,18 +75,19 @@ export class Parser {
    * the right.
    *
    * The `prefix` and `infix` methods of tokens call this function recursively to
-   * extract expressions.
+   * group expressions.
    */
-  nextExpression(rightBindingPower: number = 0): Atom | void {
+  nextExpression(rightBindingPower: number = 0): Expression | Atom | void {
 
-    let token = this.current()
-    if (!token) return
+    let token
 
+    if (!(token = this.current())) return
     this.next()
 
     let expr = token.prefix(this)
     token = this.current()
 
+    // Group expression to the right
     while (token && rightBindingPower < token.power) {
 
       if (!(token = this.current())) break

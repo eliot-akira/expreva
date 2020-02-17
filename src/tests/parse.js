@@ -33,8 +33,8 @@ test('parse valid', it => {
   const exprs = [
     '()',
     '1->()',
-    'f=x=>x;f(1)'
-    // 'true?1:0',
+    'f=x=>x;f(1)',
+    'true?1:0',
     // '{a:1}',
     // '[]',
     // '[1,2]',
@@ -49,11 +49,11 @@ test('parse valid', it => {
 
 test('parse statements', it => {
   const exprs = {
-    'f=x=>x;f(1)': '(do (set f (lambda x x)) (f 1))',
-    '(f=x=>x);f(1)': '(do (set f (lambda x x)) (f 1))',
-    'f=x=>x;1->f': '(do (set f (lambda x x)) (f 1))',
-    'f=x=>x;(1)->f': '(do (set f (lambda x x)) (f 1))',
-    'f=x=>x;(1,2)->f': '(do (set f (lambda x x)) (f 1 2))',
+    'f=x=>x;f(1)': '(do (def f (lambda x x)) (f 1))',
+    '(f=x=>x);f(1)': '(do (def f (lambda x x)) (f 1))',
+    'f=x=>x;1->f': '(do (def f (lambda x x)) (f 1))',
+    'f=x=>x;(1)->f': '(do (def f (lambda x x)) (f 1))',
+    'f=x=>x;(1,2)->f': '(do (def f (lambda x x)) (f 1 2))',
     '3 -> x => x * x': '((lambda x (* x x)) 3)',
     '3->(x => x)': '((lambda x x) 3)',
     '3->(x => x) * 3': '(* ((lambda x x) 3) 3)',
