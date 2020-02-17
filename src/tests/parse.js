@@ -58,6 +58,8 @@ test('parse statements', it => {
     '3->(x => x)': '((lambda x x) 3)',
     '3->(x => x) * 3': '(* ((lambda x x) 3) 3)',
     '3->(x => x * 3)': '((lambda x (* x 3)) 3)',
+    'f=x=>(y>0;y=x-1)': '(def f (lambda x (do (> x 0) (def x (- x 1)))))',
+    'f=x=>(x>0;x=x-1);f(1)': '(do (def f (lambda x (do (> x 0) (def x (- x 1))))) (f 1))',
   }
 
   for (const key of Object.keys(exprs)) {
