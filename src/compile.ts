@@ -5,8 +5,8 @@ export const toString = (
   inner: boolean = false
 ): string =>
   !Array.isArray(expr)
-    ? (inner ? expr : '')
-    : expr.length===1 && !Array.isArray(expr[0]) ? expr[0]+'' : `(${
+    ? (inner ? expr : expr)
+    : `(${
       expr.map(e => toString(e as Expression, true)).join(' ')
     })`
 
@@ -23,17 +23,15 @@ export const toFormattedString = (
   const spaces = ' '.repeat(indent)
 
   return !Array.isArray(expr)
-    ? (inner ? `${' '.repeat(childIndent)}${expr}` : '')
-    : expr.length===1
-    ? toFormattedString(expr[0] as Expression, internalProps)
+    ? (inner ? `${' '.repeat(childIndent)}${expr}` : expr)
     : typeof expr[0]!=='string'
       ? `${spaces}(${
-        expr.map(e => toFormattedString(e, {
-          indent: !Array.isArray(e) ? indent+1 : indent,
-          childIndent: childIndent+1,
-          inner: true
-        })).join('\n')
-      })`
+            expr.map(e => toFormattedString(e, {
+              indent: !Array.isArray(e) ? indent+1 : indent,
+              childIndent: childIndent+1,
+              inner: true
+            })).join('\n')
+          })`
       : `${spaces}(${expr[0]==='lambda' ? 'λ' : expr[0]}${
         expr[1]==null
           ? ''
