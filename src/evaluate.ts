@@ -12,10 +12,14 @@ export type ExpressionResult = any
 
 export interface Lambda {
   (...args: any[]): any
-  ast: LambdaProps
+  lambda: LambdaProps
 }
 
-export type LambdaProps = [Expression, RuntimeEnvironment, Expression]
+export type LambdaProps = {
+  args: Expression,
+  body: Expression,
+  scope: RuntimeEnvironment,
+}
 
 export type EnvironmentProps = {
   [key: string]: any // Any variable value, function, or expression
@@ -80,8 +84,8 @@ export const evaluateExpression = function(ast: SyntaxTree, env: RuntimeEnvironm
         ? env                                               // Current environment
         : ast in env                                        // Symbol in current env
           ? env[ ast ]                                      // Lookup symbol
-          : ast in Environment.baseEnv                   // Symbol in default env
-            ? Environment.baseEnv[ ast ]                 // Lookup symbol
+          : ast in Environment.baseEnv                      // Symbol in default env
+            ? Environment.baseEnv[ ast ]                    // Lookup symbol
             : undefined                                     // Undefined
             // env.throw({ message: `Undefined symbol "${ast}"` })
       : ast
@@ -90,7 +94,7 @@ export const evaluateExpression = function(ast: SyntaxTree, env: RuntimeEnvironm
 export function expandMacro(ast: SyntaxTree, env: RuntimeEnvironment): SyntaxTree {
   while (ast instanceof Array
     && typeof ast[0]==='string'
-    && ast[0] in env
+    && env[ ast[0] ]
     && env[ ast[0] ].isMacro
   ) {
     ast = env[ ast[0] ](...ast.slice(1))
@@ -132,9 +136,18 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       f.isMacro = true // mark as macro
       return f
 
-    // Quote (unevaluated)
+    // Quote expression unevaluated
     case '`':
     case 'expr': return ast[1]
+
+    // Evaluate quoted expression
+    case 'eva':
+      ast = evaluate(ast[1] as Expression, env)
+      continue
+
+    // List given arguments as array: list(1, 2, 3) => [1, 2, 3]
+    case 'list':
+      return ast.slice(1) as Expression
 
     // Get or set an array or object attribute
     case '.-': {
@@ -167,15 +180,16 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
           bindFunctionScope(env, ast[1] as Expression, args)
         ),
         {
-          ast: [
-            ast[2] as Expression, // Function body
-            env,                  // Function scope
-            ast[1] as Expression  // Argument definition
-          ] as LambdaProps,
+          lambda: {
+            args: ast[1] as Expression,  // Argument definition
+            body: ast[2] as Expression,  // Function body
+            scope: env,                  // Function scope
+          } as LambdaProps,
 
           // Print definition
           toString() {
-            return toString(['lambda', ast[1], ast[2]])
+            const def = ['lambda', ast[1], ast[2]]
+            return toString(f.name ? ['def', f.name, def] : def)
           }
         }
       )
@@ -186,6 +200,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
 
     // New environment with bindings
     case 'let':
+      if (!ast[1] || !Array.isArray(ast[1])) return
       env = env.clone()
       ;(ast[1] as []).forEach((value, i) => {
         if (i % 2) {
@@ -239,11 +254,11 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
 
     if (f instanceof Function) {
       // Lambda
-      if (f.ast) {
-        ast = f.ast[0]            // Function body
+      if (f.lambda) {
+        ast = f.lambda.body       // Function body
         env = bindFunctionScope(
-          f.ast[1],               // Function scope
-          f.ast[2],               // Argument definition
+          f.lambda.scope,         // Function scope
+          f.lambda.args,          // Argument definition
           el.slice(1)             // Called with arguments
         )
         continue
@@ -279,18 +294,13 @@ Environment.baseEnv = createEnvironment({
   '>': (a: any, b: any): boolean => a > b,
   '>=': (a: any, b: any): boolean => a >= b,
 
-  list: (...args: any[]) => args, // ['lambda', ['&', 'a'], 'a']
   map: (arr: any[], fn: (value: any, index?: number) => any) => arr.map(fn),
-
-  eva(ast: Expression) {
-    return evaluate(ast, this)
-  },
 
   throw(error: any) {
     throw new RuntimeError(error.message, error)
   },
 
   print: (...args: any) => {
-    console.log(...args)
+    console.log(...args.map(a => a instanceof Function ? a.toString() : a))
   }
 } as EnvironmentProps)
