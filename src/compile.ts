@@ -30,7 +30,9 @@ export const toFormattedString = (
       ? `${spaces}(${
         expr.map(e => toFormattedString(e, {
           indent: !Array.isArray(e) ? indent+1 : indent,
-          childIndent: childIndent+1, inner: true})).join('\n')
+          childIndent: childIndent+1,
+          inner: true
+        })).join('\n')
       })`
       : `${spaces}(${expr[0]==='lambda' ? 'λ' : expr[0]}${
         expr[1]==null
