@@ -2,6 +2,8 @@
  * This is a Lisp interpreter based on [miniMAL](https://github.com/kanaka/miniMAL) ported to TypeScript.
  */
 
+import { toString } from './compile'
+
 export type Atom = number | string | boolean | { [key: string]: any } | Atom[]
 export type Expression =  Atom[]
 export type SyntaxTree = Expression
@@ -21,16 +23,11 @@ export type EnvironmentProps = {
 
 export class Environment {
 
-  // See bottom of file for core definitions
-  static core: EnvironmentProps = {}
-  static defaultEnv: RuntimeEnvironment
+  // See bottom of file for definition
+  static baseEnv: RuntimeEnvironment
 
-  // private envProps: EnvironmentProps
-
-  constructor(givenEnv?: EnvironmentProps) {
-
-    const props = Object.assign({}, Environment.core, givenEnv || {})
-
+  constructor(props?: EnvironmentProps) {
+    if (!props) return
     Object.keys(props).forEach(key => {
       this[key] = props[key] instanceof Function
         ? props[key].bind(this)
@@ -76,16 +73,18 @@ export const bindFunctionScope = function(
 }
 
 export const evaluateExpression = function(ast: SyntaxTree, env: RuntimeEnvironment): ExpressionResult {
-
-  return ast instanceof Array                               // List?
-    ? ast.map((...a) => evaluate(a[0] as Expression, env))  // List
-    : (typeof ast == 'string')                              // Symbol?
-      ? ast in env                                          // Symbol in env?
-        ? env[ast]                                          // Lookup symbol
-        : undefined /*env.throw({
-          message: `Undefined symbol "${ast}"`              // Undefined symbol
-        })*/
-      : ast                                                 // Unchanged
+  return ast instanceof Array                               // List
+    ? ast.map((...a) => evaluate(a[0] as Expression, env))  // Evaluate list
+    : (typeof ast == 'string')                              // Symbol
+      ? ast==='env'
+        ? env                                               // Current environment
+        : ast in env                                        // Symbol in current env
+          ? env[ ast ]                                      // Lookup symbol
+          : ast in Environment.baseEnv                   // Symbol in default env
+            ? Environment.baseEnv[ ast ]                 // Lookup symbol
+            : undefined                                     // Undefined
+            // env.throw({ message: `Undefined symbol "${ast}"` })
+      : ast
 }
 
 export function expandMacro(ast: SyntaxTree, env: RuntimeEnvironment): SyntaxTree {
@@ -101,9 +100,11 @@ export function expandMacro(ast: SyntaxTree, env: RuntimeEnvironment): SyntaxTre
 
 export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): ExpressionResult {
 
-  let env = givenEnv ? givenEnv : Environment.defaultEnv
+  let env = givenEnv ? givenEnv : Environment.baseEnv
 
   while (true) {
+
+    // TODO: Add a check on each "tick" with optional limits (max ops, timeout)
 
     if (!(ast instanceof Array)) return evaluateExpression(ast, env)
     ast = expandMacro(ast, env)
@@ -123,6 +124,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       }
       return env[ varName ] = value
     }
+
     // Mark as macro
     case '~':
     case 'macro':
@@ -144,7 +146,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
     // Call object method
     case '.': {
       const el = evaluateExpression(ast.slice(1), env)
-      const x = el[0][el[1]]
+      const x = el[0][ el[1] ]
       return x.apply(el[0], el.slice(2))
     }
 
@@ -167,9 +169,14 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
         {
           ast: [
             ast[2] as Expression, // Function body
-            env,
+            env,                  // Function scope
             ast[1] as Expression  // Argument definition
-          ] as LambdaProps
+          ] as LambdaProps,
+
+          // Print definition
+          toString() {
+            return toString(['lambda', ast[1], ast[2]])
+          }
         }
       )
       return f
@@ -179,15 +186,12 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
 
     // New environment with bindings
     case 'let':
-
       env = env.clone()
-
       ;(ast[1] as []).forEach((value, i) => {
         if (i % 2) {
           env[ ast[1][ i - 1 ] ] = evaluate(value, env)
         }
       })
-
       ast = ast[2] as Expression
       continue
 
@@ -238,7 +242,7 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       if (f.ast) {
         ast = f.ast[0]            // Function body
         env = bindFunctionScope(
-          f.ast[1],               // Environment
+          f.ast[1],               // Function scope
           f.ast[2],               // Argument definition
           el.slice(1)             // Called with arguments
         )
@@ -248,14 +252,13 @@ export function evaluate(ast: SyntaxTree, givenEnv?: RuntimeEnvironment): Expres
       return f(...el.slice(1))
     }
 
-    // Primitive value returns itself
     return f
   }
 }
 
 export const createEnvironment = (env: EnvironmentProps = {}): Environment => new Environment(env)
 
-Environment.core = {
+Environment.baseEnv = createEnvironment({
   true: true,
   false: false,
 
@@ -288,10 +291,6 @@ Environment.core = {
   },
 
   print: (...args: any) => {
-    for (const arg of args) {
-      console.log(arg)
-    }
+    console.log(...args)
   }
-}
-
-Environment.defaultEnv = createEnvironment()
+} as EnvironmentProps)
