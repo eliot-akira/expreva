@@ -12,17 +12,15 @@ var $result = $('.section-result code')
 var $resultError = $('.section-error code')
 var $resultErrorContainer = $('.section-error')
 
-var env = expreva.createEnvironment()
+var env = expreva.createEnvironment({
+
+})
 
 $textarea.focus()
 
 console.log('expreva', expreva)
-if (window.location.hostname==='localhost') {
-  expreva.log = true
-} else {
-  expreva.log = false
-  console.log('To see logs, run expreva.log=true')
-}
+expreva.log = true
+console.log('To disable logs, set expreva.log=false')
 
 function log() {
   if(expreva.log) console.log.apply(console.log, arguments)

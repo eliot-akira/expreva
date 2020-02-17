@@ -5,7 +5,7 @@
  */
 
 const { createServer } = require('http')
-const  { URL }  = require('url')
+const { URL } = require('url')
 const path = require('path')
 const fs = require('fs')
 const mimeTypes = {

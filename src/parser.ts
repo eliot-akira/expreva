@@ -41,9 +41,6 @@ export class Parser {
     this.expressions = []
     this.nextExpressions = []
 
-    /**
-     * Gather expressions to the left
-     */
     do {
 
       let expr = this.parseExpression()
@@ -66,8 +63,8 @@ export class Parser {
   /**
    * Parse and return the next expression.
    *
-   * The value of `rightBindingPower` determines how much the expression binds to
-   * the right.
+   * The value of `rightBindingPower` determines how much the expression associates
+   * to the right.
    *
    * The `prefix` and `infix` methods of tokens call this function recursively to
    * group expressions.
@@ -81,9 +78,6 @@ export class Parser {
     let expr = token.prefix(this)
     token = this.current()
 
-    /**
-     * Gather expression to the right
-     */
     while (token && rightBindingPower < token.power) {
       this.next()
       expr = this.expandArguments(
