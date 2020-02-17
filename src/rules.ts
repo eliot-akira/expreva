@@ -135,6 +135,15 @@ export default [
   },
 
   {
+    match: /^\s*(\(\s*\))\s*/,
+    name: 'empty list',
+    power: 80,
+    prefix(parser) {},
+    infix(parser: Parser, left: Expression[]) {
+      return left!=null ? [left] : ['list']
+    },
+  },
+  {
     match: /^\s*(\()\s*/,
     name: 'open expression',
     power: 80,
@@ -157,15 +166,16 @@ export default [
     match: /^\s*;*\s*(\))\s*/, // ), ;)
     name: 'close expression',
     power: 0,
-    prefix(parser) {},
+    prefix() {},
     infix(parser: Parser, left: Expression[]) {},
   },
+
   {
     match: /^\s*(;+)\s*/,
     name: 'end statement',
     power: 0,
     prefix(parser: Parser) {
-      const left=parser.parseExpression(0)
+      const left = parser.parseExpression(0)
       if (left!=null) parser.pushNextExpression(left as Expression)
     },
     infix(parser: Parser, left: Expression) {},
@@ -182,7 +192,7 @@ export default [
       /**
        * Add right side to argument list
        */
-      const right = parser.parseExpression(70) // Stronger than `->`
+      const right = parser.parseExpression(65) // Stronger than `->`, weaker than `=>`
       let args: Expression = ['args..']
 
       if (parser.isArgumentList(left)) {
@@ -198,26 +208,26 @@ export default [
   {
     match: /^\s*(->)\s*/, // Must come before `-` or `>`
     name: '->',
-    prefix() {},
     power: 60, // Weaker than `=>`
+    prefix(parser: Parser) {},
     infix(parser: Parser, left: Expression) {
       const right = parser.parseExpression(this.power)
+      if (right==null) return left // No target function for apply
       if (left==null) return right
       return [right, left]
     },
   },
-  // Function definition: x=>, (x)=>, (x, y)=>
+  // Function definition: ()=>, x=>, (x)=>, (x, y)=>
   {
     match: /^\s*(=>)\s*/, // Must come before `=` or `>`
     name: 'lambda',
     power: 70,
-    prefix() {},
+    prefix(parser: Parser) {},
     infix(parser: Parser, left: Expression) {
-
-      if (!parser.isArgumentList(left)) {
+      if (left==null) left = []
+      else if (!parser.isArgumentList(left)) {
         left = ['args..', left]
       }
-
       const right = parser.parseExpression(0)
       return ['lambda', left, right]
     },

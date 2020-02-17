@@ -42,7 +42,7 @@ export class Parser {
     this.nextExpressions = []
 
     /**
-     * Gather grouped expressions to the left
+     * Gather expressions to the left
      */
     do {
 
@@ -59,7 +59,6 @@ export class Parser {
     this.expressions = this.handleUnexpandedArguments(
       this.handleMultipleExpressions(this.expressions)
     )
-    if (!Array.isArray(this.expressions)) this.expressions = [this.expressions]
 
     return this.expressions
   }
@@ -76,7 +75,6 @@ export class Parser {
   parseExpression(rightBindingPower: number = 0): Expression | Atom | void {
 
     let token
-
     if (!(token = this.current())) return
     this.next()
 
@@ -84,14 +82,12 @@ export class Parser {
     token = this.current()
 
     /**
-     * Group expression to the right
+     * Gather expression to the right
      */
     while (token && rightBindingPower < token.power) {
-      if (!(token = this.current())) break
       this.next()
       expr = this.expandArguments(
-        // Statement separator can leave undefined on left side
-        expr==null ? token.prefix(this) : token.infix(this, expr)
+        token.infix(this, expr)
       )
       token = this.current()
     }
@@ -148,7 +144,7 @@ export class Parser {
 
     if (expr[0]==='lambda') {
       // Argument definition: (lambda, [x, y, z], body)
-      ;(expr[1] as []).shift() // Remove keyword
+      (expr[1] as []).shift() // Remove keyword
       return expr
     }
 

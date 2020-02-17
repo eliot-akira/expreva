@@ -8,10 +8,10 @@ const parser = new Parser(
   new Lexer(rules)
 )
 
-const { defaultEnv } = Environment
+const { baseEnv } = Environment
 
 const expreva = {
-  env: defaultEnv,
+  env: baseEnv,
   parse: (str: string) => parser.parse(str),
   evaluate: (expr: Expression | string, env?: Environment): any | never => {
     if (env) expreva.env = env
