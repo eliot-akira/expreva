@@ -17,6 +17,7 @@ export class Parser {
   public tokens: Token[] = []
   public cursor: number = 0
   public expressions: Expression = []
+  public nextExpressions: Expression = []
 
   constructor(lexer?: Lexer) {
     if (lexer) this.lexer = lexer
@@ -38,32 +39,27 @@ export class Parser {
     this.tokens = this.lexer.tokenize(input)
     this.cursor = 0
     this.expressions = []
+    this.nextExpressions = []
 
     /**
      * Gather grouped expressions to the left
      */
     do {
 
-      let expr = this.nextExpression()
+      let expr = this.parseExpression()
 
-      if (expr==null) continue
-      if (!Array.isArray(expr)) expr = [expr]
-      if (!expr.length) continue
+      expr = this.handleNextExpressions(expr as Expression)
+
+      if (expr==null || (Array.isArray(expr) && !expr.length)) continue
 
       this.expressions.push(expr as Expression)
 
     } while (this.current())
 
-    const count = this.expressions.length
-    if (count===1) {
-      // Unwrap expression
-      this.expressions = this.expressions.shift() as Expression
-    } else if (count > 1) {
-      // Evaluate multiple expressions
-      this.expressions.unshift('do')
-    }
-
-    this.expressions = this.handleUnexpandedArguments(this.expressions)
+    this.expressions = this.handleUnexpandedArguments(
+      this.handleMultipleExpressions(this.expressions)
+    )
+    if (!Array.isArray(this.expressions)) this.expressions = [this.expressions]
 
     return this.expressions
   }
@@ -77,7 +73,7 @@ export class Parser {
    * The `prefix` and `infix` methods of tokens call this function recursively to
    * group expressions.
    */
-  nextExpression(rightBindingPower: number = 0): Expression | Atom | void {
+  parseExpression(rightBindingPower: number = 0): Expression | Atom | void {
 
     let token
 
@@ -87,21 +83,57 @@ export class Parser {
     let expr = token.prefix(this)
     token = this.current()
 
-    // Group expression to the right
+    /**
+     * Group expression to the right
+     */
     while (token && rightBindingPower < token.power) {
-
       if (!(token = this.current())) break
       this.next()
-
       expr = this.expandArguments(
         // Statement separator can leave undefined on left side
-        expr==null ? token.prefix(this)
-          : token.infix(this, expr)
+        expr==null ? token.prefix(this) : token.infix(this, expr)
       )
-
       token = this.current()
     }
 
+    return expr
+  }
+
+  handleMultipleExpressions(expr: Expression) {
+    const count = expr.length
+    if (!count) return expr
+
+    // Unwrap expression
+    if (count===1) return expr.shift() as Expression
+
+    // Evaluate multiple expressions
+    expr.unshift('do')
+    return expr
+  }
+
+  /**
+   * Support end statements `;` to push expressions
+   */
+  pushNextExpression(expr: Expression) {
+    this.nextExpressions.push(expr)
+  }
+
+  /**
+   * Combine pushed expressions
+   */
+  handleNextExpressions(expr: Expression | void) {
+
+    if (!this.nextExpressions.length) return expr
+
+    if (expr!=null) {
+      this.nextExpressions.unshift(expr)
+    }
+
+    expr = this.handleMultipleExpressions(
+      this.nextExpressions
+    )
+
+    this.nextExpressions = []
     return expr
   }
 
@@ -115,22 +147,18 @@ export class Parser {
     )  return expr
 
     if (expr[0]==='lambda') {
-
       // Argument definition: (lambda, [x, y, z], body)
-
       ;(expr[1] as []).shift() // Remove keyword
       return expr
     }
 
-    // Function call arguments: f(x, y, z)
-
     const args = expr.pop()
-
     if (!Array.isArray(args)) {
       if (args) expr.push(args)
       return expr
     }
 
+    // Function call arguments: f(x, y, z)
     ;(args as []).shift() // Remove keyword
     return expr.concat(args as Expression)
   }

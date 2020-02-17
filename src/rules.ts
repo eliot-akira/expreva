@@ -57,13 +57,13 @@ export default [
     name: 'if',
     power: 20,
     prefix(parser: Parser) {
-      const condition = parser.nextExpression(this.power)
+      const condition = parser.parseExpression(this.power)
 
-      let trueBranch = parser.nextExpression(this.power)
-      if (trueBranch==='then') trueBranch = parser.nextExpression(this.power)
+      let trueBranch = parser.parseExpression(this.power)
+      if (trueBranch==='then') trueBranch = parser.parseExpression(this.power)
 
-      let falseBranch = parser.nextExpression(this.power)
-      if (falseBranch==='else') falseBranch = parser.nextExpression(this.power)
+      let falseBranch = parser.parseExpression(this.power)
+      if (falseBranch==='else') falseBranch = parser.parseExpression(this.power)
 
       return ['if', condition, trueBranch, falseBranch]
     },
@@ -77,7 +77,7 @@ export default [
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['||', left, right]
     },
   },
@@ -87,7 +87,7 @@ export default [
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['&&', left, right]
     },
   },
@@ -96,7 +96,7 @@ export default [
     name: 'not',
     power: 70,
     prefix(parser: Parser) {
-      return ['!', parser.nextExpression(0)]
+      return ['!', parser.parseExpression(0)]
     },
     infix() {},
   },
@@ -135,26 +135,44 @@ export default [
   },
 
   {
+    match: /^\s*(\()\s*/,
+    name: 'open expression',
+    power: 80,
+    prefix(parser: Parser) {
+      const expr = parser.parseExpression(0)
+      // Parse to right parenthesis
+      parser.parseExpression(this.power)
+      // Include expressions pushed by end statement
+      return parser.handleNextExpressions(expr as Expression)
+    },
+    infix(parser: Parser, left: Expression) {
+      const right = parser.parseExpression(0)
+      // Parse to right parenthesis
+      parser.parseExpression(this.power)
+      if (left==null) return right
+      return [left, right]
+    },
+  },
+  {
     match: /^\s*;*\s*(\))\s*/, // ), ;)
     name: 'close expression',
     power: 0,
-    prefix() {},
+    prefix(parser) {},
     infix(parser: Parser, left: Expression[]) {},
   },
   {
     match: /^\s*(;+)\s*/,
     name: 'end statement',
     power: 0,
-    prefix() {},
-    infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(0)
-      if (right==null) return left
-      return [left, ';', right]
+    prefix(parser: Parser) {
+      const left=parser.parseExpression(0)
+      if (left!=null) parser.pushNextExpression(left as Expression)
     },
+    infix(parser: Parser, left: Expression) {},
   },
 
-  // Function
 
+  // Function
   {
     match: /^\s*(\,)\s*/,
     name: 'argument separator',
@@ -164,7 +182,7 @@ export default [
       /**
        * Add right side to argument list
        */
-      const right = parser.nextExpression(70) // Stronger than `->`
+      const right = parser.parseExpression(70) // Stronger than `->`
       let args: Expression = ['args..']
 
       if (parser.isArgumentList(left)) {
@@ -183,7 +201,7 @@ export default [
     prefix() {},
     power: 60, // Weaker than `=>`
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       if (left==null) return right
       return [right, left]
     },
@@ -200,7 +218,7 @@ export default [
         left = ['args..', left]
       }
 
-      const right = parser.nextExpression(0)
+      const right = parser.parseExpression(0)
       return ['lambda', left, right]
     },
   },
@@ -213,8 +231,8 @@ export default [
     power: 20,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const trueBranch = parser.nextExpression(this.power)
-      const falseBranch = parser.nextExpression(this.power)
+      const trueBranch = parser.parseExpression(this.power)
+      const falseBranch = parser.parseExpression(this.power)
       return ['if', left, trueBranch, falseBranch]
     },
   },
@@ -223,11 +241,11 @@ export default [
     name: ':',
     power: 0,
     prefix(parser: Parser) {
-      const left = parser.nextExpression(0)
+      const left = parser.parseExpression(0)
       return left
     },
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(0)
+      const right = parser.parseExpression(0)
       if (left && left[0] && left[0]==='if') {
         if (right) left.push(right)
         return left
@@ -243,7 +261,7 @@ export default [
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['||', left, right]
     },
   },
@@ -253,7 +271,7 @@ export default [
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['&&', left, right]
     },
   },
@@ -265,7 +283,7 @@ export default [
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['==', left, right]
     },
   },
@@ -275,7 +293,7 @@ export default [
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['!=', left, right]
     },
   },
@@ -285,7 +303,7 @@ export default [
     name: '!',
     power: 70,
     prefix(parser: Parser) {
-      return ['!', parser.nextExpression(0)]
+      return ['!', parser.parseExpression(0)]
     },
     infix() {},
   },
@@ -296,7 +314,7 @@ export default [
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['<=', left, right]
     },
   },
@@ -306,7 +324,7 @@ export default [
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['<', left, right]
     },
   },
@@ -316,7 +334,7 @@ export default [
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['>=', left, right]
     },
   },
@@ -326,7 +344,7 @@ export default [
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['>', left, right]
     },
   },
@@ -337,7 +355,7 @@ export default [
     power: 10,
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['def', left, right]
     },
   },
@@ -350,10 +368,10 @@ export default [
       /**
        * Positive sign binds stronger than / or *
        */
-      return parser.nextExpression(70)
+      return parser.parseExpression(70)
     },
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['+', left, right]
     },
   },
@@ -365,10 +383,10 @@ export default [
       /**
        * Negative sign binds stronger than / or *
        */
-      return -parser.nextExpression(70)
+      return -parser.parseExpression(70)
     },
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['-', left, right]
     },
   },
@@ -377,7 +395,7 @@ export default [
     name: '*',
     power: 60,
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['*', left, right]
     },
   },
@@ -386,27 +404,9 @@ export default [
     name: '/',
     power: 60,
     infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(this.power)
+      const right = parser.parseExpression(this.power)
       return ['/', left, right]
     },
   },
 
-  {
-    match: /^\s*(\()\s*/,
-    name: 'open expression',
-    power: 80,
-    prefix(parser: Parser) {
-      const expr = parser.nextExpression(0)
-      // Parse to right parenthesis
-      parser.nextExpression(this.power)
-      return expr
-    },
-    infix(parser: Parser, left: Expression) {
-      const right = parser.nextExpression(0)
-      // Parse to right parenthesis
-      parser.nextExpression(this.power)
-      if (left==null) return right
-      return [left, right]
-    },
-  },
 ]
