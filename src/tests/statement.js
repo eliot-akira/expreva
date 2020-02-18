@@ -2,7 +2,8 @@ const { eva } = require('./common')
 
 test('statement', it => {
   const is = eva(it)
-  is('1 ; 2 ; 3', 3)
+  is('1;2;3', 3)
+  is('(1;2;3)', 3)
 
   // is('[ 1 ; 2 ]', [2])
   // is('[ 1 ; 2, 3 ]', [2, 3])
