@@ -34,8 +34,8 @@ export const toFormattedString = (
     : typeof expr[0]!=='string'
       ? `${spaces}(${
             expr.map((e, i) => toFormattedString(e, {
-              indent: !Array.isArray(e) ? indent+1 : indent,
-              childIndent: i===0 ? 0 : childIndent+1,
+              indent: !Array.isArray(e) ? indent+1 : i===0 ? 0 : indent,
+              childIndent: childIndent+1,
               inner: true
             })).join('\n')
           })`
