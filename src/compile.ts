@@ -24,17 +24,19 @@ export const toFormattedString = (
 
   const spaces = ' '.repeat(indent)
 
-  return !Array.isArray(expr)
+  return expr instanceof Function
+    ? (expr.lambda ? expr.toString() : expr.name ? expr.name : '(native function)')
+    : !Array.isArray(expr)
     ? typeof expr==='object'
       ? toFormattedString(['obj', ...Object.keys(expr).map(key => [key, expr[key]])], {
         indent
         // inner: true
       })
-      : (inner ? `${' '.repeat(childIndent)}${expr}` : expr)+''
+      : (inner ? `${' '.repeat(indent)}${expr}` : expr)+''
     : typeof expr[0]!=='string'
       ? `${spaces}(${
             expr.map((e, i) => toFormattedString(e, {
-              indent: !Array.isArray(e) ? indent+1 : i===0 ? 0 : indent,
+              indent: i===0 ? 0 : !Array.isArray(e) ? indent+1 : indent,
               childIndent: childIndent+1,
               inner: true
             })).join('\n')
