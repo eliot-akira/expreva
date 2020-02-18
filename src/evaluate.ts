@@ -178,16 +178,23 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
 
     // Set variable
     case 'def': {
-      const varName = ast[1] as string
+      const varName = ast[1]
       const value = evaluate(ast[2] as Expression, env)
       // Function name
       if (value instanceof Function) {
         Object.defineProperty(value, 'name', {
-          value: varName || 'anonymous',
+          value: typeof varName==='string' ? varName : 'anonymous',
           writable: true
         })
       }
-      return env[ varName ] = value
+      // Set member via get
+      if (Array.isArray(varName)) {
+        const member = varName.pop()
+        varName.push(['def', evaluate(member as Expression, env), ['`', value]])
+        ast = varName
+        continue
+      }
+      return env[ varName as string ] = value
     }
 
     // Get variable or get/set member
@@ -195,12 +202,18 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       const varName = ast[1]
       const members = ast.slice(2)
       const rootValue = evaluate(varName as Expression, env)
+
       if (!members.length) return rootValue
-      // Array or object
-      if (typeof rootValue!=='object') return
+
+      if (typeof rootValue!=='object') {
+        return env.throw({
+          message: 'Cannot access member: not an array or object'
+        })
+      }
 
       let value = rootValue
       for (const member of members) {
+        // Define member
         if (member[0]==='def') {
           value = (value[ member[1] ] = evaluate(member[2], env))
           break
@@ -358,7 +371,12 @@ Environment.root = new Environment({
   '>': (a: any, b: any): boolean => a > b,
   '>=': (a: any, b: any): boolean => a >= b,
 
-  map: (fn: (value: any, index?: number) => any) => (arr: any[]) => arr.map(fn),
+  map: (fn: (value: any, index: number | string) => any) =>
+    (arr: any[] | { [key: string]: any }) =>
+      Array.isArray(arr) ? arr.map(fn) : (Object.keys(arr).reduce((obj, key) => {
+        obj[key] = fn(key, arr[key])
+        return obj
+      }, {})),
 
   print: (...args: any) => {
     console.log(...args.map(a => a instanceof Function ? a.toString() : a))

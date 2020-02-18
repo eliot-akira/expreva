@@ -54,7 +54,7 @@ export default [
       return right==null ? right : parseFloat(`0.${right}`)
     },
     infix(parser: Parser, left) {
-      let right = parser.parseExpression(0)
+      let right = parser.parseExpression(this.power)
       if (right==null) return left
       if (Array.isArray(right) && right[0]==='get') {
         return ['get', left, quoteString(right[1]), ...right.slice(2)]
