@@ -26,21 +26,24 @@ export const toFormattedString = (
 
   return expr instanceof Function
     ? (expr.lambda ? expr.toString() : expr.name ? expr.name : '(native function)')
+    // Object or primitive value
     : !Array.isArray(expr)
-    ? typeof expr==='object'
-      ? toFormattedString(['obj', ...Object.keys(expr).map(key => [key, expr[key]])], {
-        indent
-        // inner: true
-      })
-      : (inner ? `${' '.repeat(indent)}${expr}` : expr)+''
+      ? typeof expr==='object'
+        ? toFormattedString(['obj', ...Object.keys(expr).map(key => [key, expr[key]])], {
+          indent
+          // inner: true
+        })
+        : (inner ? `${' '.repeat(childIndent)}${expr}` : expr)+''
     : typeof expr[0]!=='string'
+      // List array
       ? `${spaces}(${
-            expr.map((e, i) => toFormattedString(e, {
-              indent: i===0 ? 0 : !Array.isArray(e) ? indent+1 : indent,
-              childIndent: childIndent+1,
-              inner: true
-            })).join('\n')
-          })`
+          expr.map((e, i) => toFormattedString(e, {
+            indent: i===0 ? 0 : !Array.isArray(e) ? (childIndent+1) : childIndent,
+            childIndent: childIndent+(i===0 ? 0 : 1),
+            inner: true
+          })).join('\n')
+        })`
+      // Function in list form
       : `${spaces}(${expr[0]==='lambda' ? 'λ' : expr[0]}${
         expr[1]==null
           ? ''
@@ -55,6 +58,7 @@ export const toFormattedString = (
                   // inner: true
                 }))
             )+(expr[2]==null ? ''
+              // Function arguments
               : "\n"+(
                 expr.slice(2).map(e => toFormattedString(e, {
                   indent: childIndent+( expr[0]==='lambda' ? 1 : (expr[0]+'').length )+2, // "("+name+space+"("
