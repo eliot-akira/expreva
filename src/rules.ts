@@ -40,14 +40,37 @@ import { Expression } from './evaluate'
  *  80   . [ (
  */
 
+/** Quote string, otherwise pass through */
+const quoteString = (v: Expression) => typeof v==='string' ? ['`', v] : v
+
 export default [
+
   {
-    match: /^\s*((\d+)?\.?\d+)\s*/,
+    match: /^\s*(\.)\s*/,
+    name: 'member',
+    power: 80,
+    prefix(parser: Parser) {
+      const right = parser.parseExpression(0)
+      return right==null ? right : parseFloat(`0.${right}`)
+    },
+    infix(parser: Parser, left) {
+      let right = parser.parseExpression(0)
+      if (right==null) return left
+      if (Array.isArray(right) && right[0]==='get') {
+        return ['get', left, quoteString(right[1]), ...right.slice(2)]
+      }
+      return ['get', left, quoteString(right)]
+    }
+  },
+
+  {
+    match: /^\s*(\d+)\s*/, // (\d+)?\.?
     name: 'number',
     power: 0,
     prefix(parser: Parser) {
       return parseFloat(this.value)
-    }
+    },
+    infix(parser: Parser, left) {},
   },
 
   // Reserved words must come before symbol
@@ -108,6 +131,7 @@ export default [
     prefix(parser: Parser) {
       return this.value.trim()
     },
+    infix(parser: Parser, left) {},
   },
 
   /**
@@ -130,7 +154,7 @@ export default [
     power: 0,
     prefix(parser: Parser) {
       // Unwrap quotes and unescape
-      return ['`', JSON.parse(this.value)] // Unescape
+      return ['`', JSON.parse(this.value)]
     }
   },
 
@@ -176,9 +200,9 @@ export default [
     power: 0,
     prefix(parser: Parser) {
       const left = parser.parseExpression(0)
-      if (left!=null) parser.pushNextExpression(left as Expression)
+      if (left!=null) parser.pushNextExpression(left)
     },
-    infix(parser: Parser, left: Expression) {},
+    infix() {},
   },
 
 
@@ -189,14 +213,16 @@ export default [
     power: 5, // Stronger than )
     prefix() {},
     infix(parser: Parser, left: Expression) {
-      /**
-       * Add right side to argument list
-       */
+
+      // Inside object definition
+      if (Array.isArray(left) && left[0]==='pair') return left
+
+      // Add right side to argument list
       const right = parser.parseExpression(65) // Stronger than `->`, weaker than `=>`
       let args: Expression = ['args..']
 
       if (parser.isArgumentList(left)) {
-        args = left
+        args = left as Expression[]
       } else if (left!=null) {
         args.push(left)
       }
@@ -249,20 +275,76 @@ export default [
   {
     match: /^\s*(:)\s*/,
     name: ':',
-    power: 0,
+    power: 20,
     prefix(parser: Parser) {
-      const left = parser.parseExpression(0)
-      return left
+      return parser.parseExpression(0)
     },
     infix(parser: Parser, left: Expression) {
-      const right = parser.parseExpression(0)
-      if (left && left[0] && left[0]==='if') {
-        if (right) left.push(right)
-        return left
+      const right = parser.parseExpression(this.power)
+
+      // Key-value pair for object definition
+      if (!Array.isArray(left) || left[0]!=='if') {
+        return ['pair', left, right]
       }
-      // TODO: Object properties
-      return [left, right]
+
+      if (right) left.push(right)
+      return left
     },
+  },
+
+  // Array
+  {
+    match: /^\s*(\[)\s*/,
+    name: 'open array',
+    power: 80,
+    prefix(parser: Parser) {
+      const expr = parser.parseExpression(0)
+      // Parse to right bracket
+      parser.parseExpression(this.power)
+      if (Array.isArray(expr) && expr[0]==='args..') {
+        expr[0] = 'list'
+        return expr
+      }
+      if (expr==null) return ['list']
+      return ['list', expr]
+    },
+    infix(parser: Parser, left: Expression) {},
+  },
+  {
+    match: /^\s*(\])\s*/,
+    name: 'close array',
+    power: 0,
+    prefix() {},
+    infix(parser: Parser, left: Expression[]) {},
+  },
+
+  {
+    match: /^\s*(\{)\s*/,
+    name: 'open object',
+    power: 80,
+    prefix(parser: Parser) {
+      const expr = parser.parseExpression(0)
+      // Gather key-value pairs
+      const allPairs = expr==null ? [] : [expr]
+      let next
+      while (next = parser.parseExpression(0)) {
+        if (!next || next[0]!=='pair') break
+        allPairs.push(next)
+      }
+      if (next!=null) parser.pushNextExpression(next)
+      return ['obj', ...allPairs.map(a => {
+        (a as []).shift() // Remove keyword "pair"
+        return a
+      })]
+    },
+    infix(parser: Parser, left: Expression) {},
+  },
+  {
+    match: /^\s*(\})\s*/,
+    name: 'close object',
+    power: 0,
+    prefix() {},
+    infix() {},
   },
 
   {

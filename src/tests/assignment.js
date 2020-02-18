@@ -1,4 +1,4 @@
-const { eva } = require('./common')
+const { eva, evaluate } = require('./common')
 
 test('assignment', it => {
 
@@ -8,11 +8,14 @@ test('assignment', it => {
   is('a=1;b=2', 2)
   is('a=1;b=2;', 2)
   is('a=1;b=2;a', 1)
-  is('a=1;b=2;c', undefined)
+  //is('a=1;b=2;c', undefined)
+  it('a=1;b=2;c', it.throws(() => evaluate('a=1;b=2;c')))
   is('(a=1);(b=a);(b)', 1)
 
-  // is(`a = {} a.b = 'hi' a `, { b: 'hi' })
-  // is(`a=[1] b=[2] b`, [2])
+  is(`a={};a.b='hi';a`, { b: 'hi' })
+  is(`a=[1];b=[2];b`, [2])
+  is(`a=[{k:'k'}];a.0.k='v';a`, [{ k: 'v' }])
+  is(`a={k:[]};a.k.0='v';a`, { k: ['v'] })
 })
 
 // test('compound assignment', it => {

@@ -1,6 +1,6 @@
 import { Token } from './token'
 import { Lexer } from './lexer'
-import { Expression, Atom } from './evaluate'
+import { Expression } from './evaluate'
 
 /**
  * Parse a given source string into a syntax tree of expressions.
@@ -16,8 +16,8 @@ export class Parser {
   public lexer: Lexer
   public tokens: Token[] = []
   public cursor: number = 0
-  public expressions: Expression = []
-  public nextExpressions: Expression = []
+  public expressions: Expression[] = []
+  public nextExpressions: Expression[] = []
 
   constructor(lexer?: Lexer) {
     if (lexer) this.lexer = lexer
@@ -53,7 +53,7 @@ export class Parser {
 
     } while (this.current())
 
-    this.expressions = this.handleUnexpandedArguments(
+    this.expressions = this.handleUnexpandedKeywords(
       this.handleMultipleExpressions(this.expressions)
     )
 
@@ -69,7 +69,7 @@ export class Parser {
    * The `prefix` and `infix` methods of tokens call this function recursively to
    * group expressions.
    */
-  parseExpression(rightBindingPower: number = 0): Expression | Atom | void {
+  parseExpression(rightBindingPower: number = 0): Expression | void {
 
     let token
     if (!(token = this.current())) return
@@ -89,7 +89,7 @@ export class Parser {
     return expr
   }
 
-  handleMultipleExpressions(expr: Expression) {
+  handleMultipleExpressions(expr: Expression[]) {
     const count = expr.length
     if (!count) return expr
 
@@ -158,10 +158,16 @@ export class Parser {
   }
 
   /**
-   * After all expressions are parsed, scan for unexpanded arguments
+   * After all expressions are parsed, scan for unexpanded keywords
    */
-  handleUnexpandedArguments(expr) {
+  handleUnexpandedKeywords(expr) {
     if (!expr || !Array.isArray(expr)) return expr
+
+    // Members "." for number
+    if (expr[0]==='get' && typeof expr[1]==='number' && typeof expr[2]==='number') {
+      return expr[1] + parseFloat(`0.${expr[2]}`)
+    }
+    // Arguments "args.."
     if (this.isArgumentList(expr)) {
       expr[0] = 'list'
     }
@@ -169,7 +175,7 @@ export class Parser {
       if (this.isArgumentList(expr[i])) {
         expr[i][0] = 'list'
       } else {
-        expr[i] = this.handleUnexpandedArguments(expr[i])
+        expr[i] = this.handleUnexpandedKeywords(expr[i])
       }
     }
     return expr

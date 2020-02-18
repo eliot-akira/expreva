@@ -1,13 +1,15 @@
-import { Expression, Atom } from './evaluate'
+import { Expression } from './evaluate'
 
 export const toString = (
   expr: Expression,
   inner: boolean = false
 ): string =>
   !Array.isArray(expr)
-    ? (inner ? expr : expr)
+    ? typeof expr==='object'
+      ? toString(['obj', Object.keys(expr).map(key => ['pair', key, expr[key]])])
+      : (inner ? expr : expr)+''
     : `(${
-      expr.map(e => toString(e as Expression, true)).join(' ')
+      expr.map(e => e==='lambda' ? 'λ' : toString(e as Expression, true)).join(' ')
     })`
 
 export const toFormattedString = (
@@ -23,12 +25,17 @@ export const toFormattedString = (
   const spaces = ' '.repeat(indent)
 
   return !Array.isArray(expr)
-    ? (inner ? `${' '.repeat(childIndent)}${expr}` : expr)
+    ? typeof expr==='object'
+      ? toFormattedString(['obj', ...Object.keys(expr).map(key => [key, expr[key]])], {
+        indent
+        // inner: true
+      })
+      : (inner ? `${' '.repeat(childIndent)}${expr}` : expr)+''
     : typeof expr[0]!=='string'
       ? `${spaces}(${
-            expr.map(e => toFormattedString(e, {
+            expr.map((e, i) => toFormattedString(e, {
               indent: !Array.isArray(e) ? indent+1 : indent,
-              childIndent: childIndent+1,
+              childIndent: i===0 ? 0 : childIndent+1,
               inner: true
             })).join('\n')
           })`
