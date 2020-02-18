@@ -12,7 +12,7 @@ var $result = $('.section-result code')
 var $resultError = $('.section-error code')
 var $resultErrorContainer = $('.section-error')
 
-var env = expreva.createEnvironment({
+var env = expreva.env = expreva.createEnvironment({
 
 })
 
@@ -42,20 +42,7 @@ function setText(el, value) {
 }
 
 function stringify(val) {
-  return val instanceof Function
-    ? 'function '+val.name+'()'
-    : typeof val==='undefined'
-      ? '' //'undefined'
-      : Array.isArray(val)
-        ? val.map(v => stringify(v)).join("\n")
-        : typeof val==='object'
-          ? JSON.stringify(val, function(key, value) {
-            if (!key) return value
-            return value instanceof Function ? stringify(value) : value
-          }, 2).replace(/"/g, '\'')
-          : typeof val==='string'
-            ? val.replace(/"/g, '\'')
-            : (val==null ? '' : val)
+  return expreva.toFormattedString(val)
 }
 
 function renderInstructions(instr) {
@@ -87,7 +74,7 @@ function render() {
 
     instructions = expreva.parse(expression, env)
 
-    if (!instructions) {
+    if (instructions==null) {
       log('Empty result after parse')
       clearText($instructions, $result, $resultError)
       return
