@@ -9,11 +9,14 @@ var $runAction = $('.evaluate-button')
 
 var $instructions = $('.section-instructions code')
 var $result = $('.section-result code')
+var $resultCanvas = $('.section-result .result-canvas')
 var $resultError = $('.section-error code')
 var $resultErrorContainer = $('.section-error')
 
 var env = expreva.env = expreva.createEnvironment({
-
+  say(txt) {
+    $resultCanvas.innerText = txt
+  }
 })
 
 $textarea.focus()
@@ -67,6 +70,7 @@ function render() {
 
   expression = $textarea.value
   // if (expression===lastExpression) return
+  $resultCanvas.innerText = ''
 
   lastExpression = expression
 
