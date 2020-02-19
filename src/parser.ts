@@ -43,10 +43,9 @@ export class Parser {
 
     do {
 
-      let expr = this.parseExpression()
-
-      expr = this.handleNextExpressions(expr as Expression)
-
+      const expr = this.handleNextExpressions(
+        this.parseExpression()
+      )
       if (expr==null || (Array.isArray(expr) && !expr.length)) continue
 
       this.expressions.push(expr as Expression)
@@ -85,7 +84,29 @@ export class Parser {
       )
       token = this.current()
     }
+    return expr
+  }
 
+  /**
+   * Support end statements `;` to push expressions
+   */
+  pushNextExpression(expr: Expression) {
+    this.nextExpressions.push(expr)
+  }
+
+  /**
+   * Combine pushed expressions
+   */
+  handleNextExpressions(expr: Expression | void) {
+    if (!this.nextExpressions.length) return expr
+
+    if (expr!=null) {
+      this.nextExpressions.unshift(expr)
+    }
+    expr = this.handleMultipleExpressions(
+      this.nextExpressions
+    )
+    this.nextExpressions = []
     return expr
   }
 
@@ -102,34 +123,43 @@ export class Parser {
   }
 
   /**
-   * Support end statements `;` to push expressions
+   * After all expressions are parsed, scan for unexpanded keywords
    */
-  pushNextExpression(expr: Expression) {
-    this.nextExpressions.push(expr)
-  }
+  handleUnexpandedKeywords(expr) {
+    if (!expr || !Array.isArray(expr)) return expr
 
-  /**
-   * Combine pushed expressions
-   */
-  handleNextExpressions(expr: Expression | void) {
-
-    if (!this.nextExpressions.length) return expr
-
-    if (expr!=null) {
-      this.nextExpressions.unshift(expr)
+    // Restore "." for number, instead of member
+    if (expr[0]==='get' && typeof expr[1]==='number' && typeof expr[2]==='number') {
+      return expr[1] + parseFloat(`0.${expr[2]}`)
     }
-
-    expr = this.handleMultipleExpressions(
-      this.nextExpressions
-    )
-
-    this.nextExpressions = []
-    return expr
+    // Arguments "args.."
+    if (this.isArgumentList(expr)) {
+      expr[0] = 'list'
+    }
+    for (let i=0, len=expr.length; i < len; i++) {
+      // Apply argument to function
+      if (Array.isArray(expr[i]) && expr[i][0]==='->') {
+        // Combine with previous expression to create list form
+        expr[i - 1] = [
+          expr[i][1], // Target function to apply
+          expr[i - 1] // Argument
+        ]
+        expr.splice(i, 1)
+        i--
+      }
+      expr[i] = this.handleUnexpandedKeywords(expr[i])
+    }
+    return expr.filter(e => e!=null)
   }
 
   /**
-   * Expand arguments list
+   * Arguments list
    */
+
+  isArgumentList(expr) {
+    return Array.isArray(expr) && expr[0]==='args..'
+  }
+
   expandArguments(expr: Expression | void) {
 
     if (!expr || !Array.isArray(expr)
@@ -151,34 +181,6 @@ export class Parser {
     // Function call arguments: f(x, y, z)
     ;(args as []).shift() // Remove keyword
     return expr.concat(args as Expression)
-  }
-
-  isArgumentList(expr) {
-    return Array.isArray(expr) && expr[0]==='args..'
-  }
-
-  /**
-   * After all expressions are parsed, scan for unexpanded keywords
-   */
-  handleUnexpandedKeywords(expr) {
-    if (!expr || !Array.isArray(expr)) return expr
-
-    // Members "." for number
-    if (expr[0]==='get' && typeof expr[1]==='number' && typeof expr[2]==='number') {
-      return expr[1] + parseFloat(`0.${expr[2]}`)
-    }
-    // Arguments "args.."
-    if (this.isArgumentList(expr)) {
-      expr[0] = 'list'
-    }
-    for (let i=0, len=expr.length; i < len; i++) {
-      if (this.isArgumentList(expr[i])) {
-        expr[i][0] = 'list'
-      } else {
-        expr[i] = this.handleUnexpandedKeywords(expr[i])
-      }
-    }
-    return expr
   }
 }
 

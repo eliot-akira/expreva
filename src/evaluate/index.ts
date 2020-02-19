@@ -2,8 +2,10 @@
  * This is a Lisp interpreter based on [miniMAL](https://github.com/kanaka/miniMAL) ported to TypeScript.
  */
 
-import { toString } from './compile'
+import { toString } from '../compile'
+import { Environment, RuntimeEnvironment, createEnvironment } from './environment'
 
+export * from './environment'
 export type Expression = number | string | boolean | { [key: string]: any } | Expression[]
 export type ExpressionResult = any
 
@@ -16,69 +18,6 @@ export type LambdaProps = {
   args: Expression,
   body: Expression,
   scope: RuntimeEnvironment,
-}
-
-export type EnvironmentProps = {
-  [key: string]: any // Any variable value, function, or expression
-}
-
-export class Environment {
-
-  // See bottom of file for definition
-  static root: RuntimeEnvironment
-  // Top scope for all child scopes
-  readonly global?: RuntimeEnvironment
-
-  constructor(props?: EnvironmentProps, global?: RuntimeEnvironment | false) {
-    if (global!==false) {
-      Object.defineProperty(this, 'global', {
-        value: global || this,
-        enumerable: false,
-        writable: false
-      })
-    }
-    if (!props) return
-    Object.keys(props).forEach(key => {
-      this[key] = props[key] instanceof Function
-        ? props[key].bind(this)
-        : props[key]
-    })
-  }
-
-  throw(error: any) {
-    throw new RuntimeError(error.message, error)
-  }
-
-  /**
-   * Create child scope with parent and global as non-enumerable properties.
-   * Symbols in parent scopes are looked up recursively in evaluateExpression.
-   */
-  create(props?: EnvironmentProps) {
-
-    // Root scope: create top scope with no parent
-    if (!this.global) return new Environment(props)
-
-    const env = new Environment(props, this.global)
-    Object.defineProperty(env, 'parent', {
-      value: this,
-      enumerable: false,
-      writable: false
-    })
-    return env
-  }
-}
-
-export type RuntimeEnvironment = Environment & EnvironmentProps
-
-/**
- * Error with data property
- *
- * TODO: Stack trace to source location
- */
-export class RuntimeError extends Error {
-  constructor(public message: string, public data?: any) {
-    super(message)
-  }
 }
 
  /**
@@ -103,6 +42,17 @@ export const bindFunctionScope = function(
   return boundEnv
 }
 
+export function expandMacro(ast: Expression, env: RuntimeEnvironment): Expression {
+  while (ast instanceof Array
+    && typeof ast[0]==='string'
+    && env[ ast[0] ]
+    && env[ ast[0] ].isMacro
+  ) {
+    ast = env[ ast[0] ](...ast.slice(1))
+  }
+  return ast
+}
+
 export const evaluateExpression = function(ast: Expression, env: RuntimeEnvironment): ExpressionResult {
   return ast instanceof Array                               // List form?
     ? ast.map((...a) => evaluate(a[0] as Expression, env))  // Evaluate list
@@ -117,17 +67,6 @@ export const evaluateExpression = function(ast: Expression, env: RuntimeEnvironm
               //: undefined                                 // Undefined
               : env.throw({ message: `Undefined symbol "${ast}"` })
       : ast                                                 // Primitive value: number, boolean, function
-}
-
-export function expandMacro(ast: Expression, env: RuntimeEnvironment): Expression {
-  while (ast instanceof Array
-    && typeof ast[0]==='string'
-    && env[ ast[0] ]
-    && env[ ast[0] ].isMacro
-  ) {
-    ast = env[ ast[0] ](...ast.slice(1))
-  }
-  return ast
 }
 
 export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): ExpressionResult {
@@ -349,39 +288,3 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
     return f
   }
 }
-
-Environment.root = new Environment({
-  true: true,
-  false: false,
-
-  '+': (a: number = 0, b: number = 0): number => a + b,
-  '-': (a: number = 0, b: number = 0): number => a - b,
-  '*': (a: number = 1, b: number = 1): number => a * b,
-  '/': (a: number = 0, b: number = 1): number => a / b,
-
-  '!': (a: any): boolean => !a,
-  '||': (a: any, b: any): boolean => a || b,
-  '&&': (a: any, b: any): boolean => a && b,
-
-  '==': (a: any, b: any): boolean => a === b,
-  '!=': (a: any, b: any): boolean => a !== b,
-
-  '<': (a: any, b: any): boolean => a < b,
-  '<=': (a: any, b: any): boolean => a <= b,
-  '>': (a: any, b: any): boolean => a > b,
-  '>=': (a: any, b: any): boolean => a >= b,
-
-  map: (fn: (value: any, index: number | string) => any) =>
-    (arr: any[] | { [key: string]: any }) =>
-      Array.isArray(arr) ? arr.map(fn) : (Object.keys(arr).reduce((obj, key) => {
-        obj[key] = fn(key, arr[key])
-        return obj
-      }, {})),
-
-  print: (...args: any) => {
-    console.log(...args.map(a => a instanceof Function ? a.toString() : a))
-  }
-} as EnvironmentProps, false)
-
-export const createEnvironment = (props?: EnvironmentProps): Environment =>
-  Environment.root.create(props)
