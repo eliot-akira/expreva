@@ -7,7 +7,7 @@ export const toString = (
   !Array.isArray(expr)
     ? typeof expr==='object'
       ? toString(['obj', Object.keys(expr).map(key => ['pair', key, expr[key]])])
-      : (inner ? expr : expr)+''
+      : expr==null ? '' : (inner ? expr : expr)+''
     : `(${
       expr.map(e => e==='lambda' ? 'λ' : toString(e as Expression, true)).join(' ')
     })`
@@ -33,7 +33,7 @@ export const toFormattedString = (
           indent
           // inner: true
         })
-        : (inner ? `${' '.repeat(childIndent)}${expr}` : expr)+''
+        : expr==null ? '' : (inner ? `${' '.repeat(childIndent)}${expr}` : expr)+''
     : typeof expr[0]!=='string'
       // List array
       ? `${spaces}(${
