@@ -4,7 +4,7 @@ import { Expression } from '../evaluate'
 export default [
 
   {
-    match: /^\s*(\d+)\s*/, // (\d+)?\.?
+    match: /^\s*(\d+)\s*/, // (\d+)?\.? - Let member operator "." process first
     name: 'number',
     power: 0,
     prefix(parser: Parser) {

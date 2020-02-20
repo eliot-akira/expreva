@@ -13,7 +13,7 @@ import symbolRules from './symbol'
  * - Number
  * - Number prefix `+` and `-`
  * - Symbol for variables
- * - String wrapped in double or single quotes, and escape characters
+ * - String in double or single quotes, with escape characters
  * - Arithmetic operators: `+`, `-`, `*`, `/`
  * - Assignment: `=`
  * - Comparison: `==`, '!=', `>`, `>=`, `<`, `<=`
@@ -24,6 +24,9 @@ import symbolRules from './symbol'
  * - Function call with arguments: `f(x,y)`
  * - Function application with arguments: `x->f` and `(x, y)->f`
  * - Anonymous function with arguments: `x => body` and `(x, y) => body`
+ * - Array []
+ * - Object { key: value }
+ * - Array and object member x.y
  *
  * Note that each rule's regular expression must only have a single capture group. The order
  * of rules below determines the order in which they are matched against the source string.

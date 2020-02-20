@@ -8,9 +8,9 @@ Expreva is a language based on arithmetic and algebra expressions.
 
 This is a parser and interpreter for the [Expreva language](https://expreva.com/), written in TypeScript.
 
-Expreva is a modular, extensible language and cross-platform virtual machine.
+Expreva aims to be a modular, extensible language and cross-platform virtual machine.
 
-It's an exploration in progress, to design a suitable medium for end-user programming - for example: in a spreadsheet formula; as a data transport or query protocol; and creation of dynamic content, such as hypertext documents and interactive textbooks.
+It's an exploration to design a suitable medium for end-user programming, for example: in a spreadsheet formula; for data transport or query protocol; and creation of dynamic hypertext documents and interactive textbooks.
 
 The source code is compiled to a compact JSON-serializable format, suitable for transfer over HTTP, WebSocket, or inter-process communication.
 
