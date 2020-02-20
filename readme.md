@@ -19,7 +19,7 @@ The goal is to stay beginner-friendly, and simple enough to implement on a range
 
 ## Parser
 
-The default grammar is based on infix notation, a superset of familiar arithmetics.
+The grammar is based on infix notation, a superset of familiar arithmetics.
 
 The parser produces a syntax tree of symbolic expressions in prefix notation, as in Lisp.
 
