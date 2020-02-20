@@ -23,9 +23,11 @@ export default [
       return parser.handleNextExpressions(expr as Expression)
     },
     infix(parser: Parser, left: Expression) {
-      const right = parser.parseExpression(0)
+      let right = parser.parseExpression(0)
       // Parse to right parenthesis
       parser.parseExpression(this.power)
+      // Include expressions pushed by end statement
+      right = parser.handleNextExpressions(right)
       if (left==null) return right
       return [left, right]
     },

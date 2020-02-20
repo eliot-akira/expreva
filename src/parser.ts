@@ -16,7 +16,7 @@ export class Parser {
   public lexer: Lexer
   public tokens: Token[] = []
   public cursor: number = 0
-  public expressions: Expression[] = []
+  public expressions: Expression = []
   public nextExpressions: Expression[] = []
 
   constructor(lexer?: Lexer) {
@@ -88,6 +88,15 @@ export class Parser {
   }
 
   /**
+   * Functions below support additional syntax, such as:
+   *
+   * - Statements (x;y)
+   * - Function arguments (x,y)
+   * - Function application (x,y)->f
+   * - Array and object member x.y
+   */
+
+  /**
    * Support end statements `;` to push expressions
    */
   pushNextExpression(expr: Expression) {
@@ -99,7 +108,6 @@ export class Parser {
    */
   handleNextExpressions(expr: Expression | void) {
     if (!this.nextExpressions.length) return expr
-
     if (expr!=null) {
       this.nextExpressions.unshift(expr)
     }
@@ -110,7 +118,9 @@ export class Parser {
     return expr
   }
 
-  handleMultipleExpressions(expr: Expression[]) {
+  handleMultipleExpressions(expr: Expression) {
+    if (!Array.isArray(expr)) return expr
+
     const count = expr.length
     if (!count) return expr
 
@@ -125,7 +135,7 @@ export class Parser {
   /**
    * After all expressions are parsed, scan for unexpanded keywords
    */
-  handleUnexpandedKeywords(expr) {
+  handleUnexpandedKeywords(expr: Expression): Expression {
     if (!expr || !Array.isArray(expr)) return expr
 
     // Restore "." for number, instead of member

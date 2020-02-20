@@ -38,7 +38,7 @@ export class Environment {
    */
   create(props?: EnvironmentProps) {
 
-    // Root scope: create top scope with no parent
+    // Root scope creates a top scope with no parent
     if (!this.global) return new Environment(props)
 
     const env = new Environment(props, this.global)
