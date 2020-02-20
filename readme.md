@@ -14,7 +14,7 @@ It's an exploration to design a suitable medium for end-user programming, for ex
 
 The source code is compiled to a compact JSON-serializable format, suitable for transfer over HTTP, WebSocket, or inter-process communication.
 
-The goal is to stay beginner-friendly, and simple enough to implement on a range of platforms. Currently it runs in a web browser, Node.js server, and on [PHP](https://github.com/expreva/expreva-php). An eventual plan is to compile to WebAssembly, and perhaps run on embedded devices.
+The goal is to stay beginner-friendly, and simple enough to implement on a range of platforms. Currently it runs in a web browser, Node.js server, and on [PHP](https://github.com/expreva/expreva-php). An eventual plan is to compile to WebAssembly.
 
 
 ## Parser
