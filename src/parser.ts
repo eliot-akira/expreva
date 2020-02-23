@@ -16,11 +16,13 @@ export class Parser {
   public lexer: Lexer
   public tokens: Token[] = []
   public cursor: number = 0
+  public expressionLevel: number = 0
   public expressions: Expression = []
   public nextExpressions: Expression[] = []
+  public expressionCapturer: ((expr: Expression) => void)[] = []
 
-  constructor(lexer?: Lexer) {
-    if (lexer) this.lexer = lexer
+  constructor(lexer: Lexer) {
+    this.lexer = lexer
   }
 
   current() {
@@ -38,6 +40,7 @@ export class Parser {
 
     this.tokens = this.lexer.tokenize(input)
     this.cursor = 0
+    this.expressionLevel = 0
     this.expressions = []
     this.nextExpressions = []
 
@@ -159,7 +162,7 @@ export class Parser {
       }
       expr[i] = this.handleUnexpandedKeywords(expr[i])
     }
-    return expr.filter(e => e!=null)
+    return expr.filter(e => e!=null&& e!==';') //
   }
 
   /**
@@ -191,6 +194,23 @@ export class Parser {
     // Function call arguments: f(x, y, z)
     ;(args as []).shift() // Remove keyword
     return expr.concat(args as Expression)
+  }
+
+  pushExpressionCapturer(fn) {
+    this.expressionCapturer.push(fn)
+  }
+
+  popExpressionCapturer() {
+    this.expressionCapturer.pop()
+  }
+
+  captureExpressions(exprs: Expression[]) {
+    const fn = this.expressionCapturer[
+      this.expressionCapturer.length - 1
+    ]
+    if (!fn) return false
+    fn(exprs)
+    return true
   }
 }
 

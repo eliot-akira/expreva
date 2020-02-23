@@ -15,7 +15,8 @@ export default [
       if (Array.isArray(left) && left[0]==='pair') return left
 
       // Add right side to argument list
-      const right = parser.parseExpression(65) // Stronger than `->`, weaker than `=>`
+      const right = parser.parseExpression(0) // Was 65, stronger than `->`, weaker than `=>`
+
       let args: Expression = ['args..']
 
       if (parser.isArgumentList(left)) {
@@ -23,7 +24,13 @@ export default [
       } else if (left!=null) {
         args.push(left)
       }
-      if (right!=null) args.push(right)
+      if (right!=null) {
+        if (parser.isArgumentList(right)) {
+          args.push(...(right as []).slice(1))
+        } else {
+          args.push(right)
+        }
+      }
       return args
     }
   },

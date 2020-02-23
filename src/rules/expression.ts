@@ -16,18 +16,32 @@ export default [
     name: 'open expression',
     power: 80,
     prefix(parser: Parser) {
-      const expr = parser.parseExpression(0)
+
+      parser.expressionLevel++
+
+      // Capture statements
+      let subExprs: Expression[] = []
+      parser.pushExpressionCapturer((subExpr: Expression[]) => {
+        subExprs.unshift(...subExpr)
+      })
+
+      let expr = parser.parseExpression(0)
+      if (subExprs.length) {
+        expr = ['do', expr, ...subExprs]
+      }
+      parser.popExpressionCapturer()
+
       // Parse to right parenthesis
       parser.parseExpression(this.power)
-      // Include expressions pushed by end statement
-      return parser.handleNextExpressions(expr as Expression)
+
+      parser.expressionLevel--
+
+      return expr // parser.handleNextExpressions(expr as Expression)
     },
     infix(parser: Parser, left: Expression) {
-      let right = parser.parseExpression(0)
+      const right = parser.parseExpression(0)
       // Parse to right parenthesis
       parser.parseExpression(this.power)
-      // Include expressions pushed by end statement
-      right = parser.handleNextExpressions(right)
       if (left==null) return right
       return [left, right]
     },
@@ -37,17 +51,23 @@ export default [
     name: 'close expression',
     power: 0,
     prefix() {},
-    infix(parser: Parser, left: Expression[]) {},
+    infix() {},
   },
 
   {
     match: /^\s*(;+)\s*/,
     name: 'end statement',
-    power: 0,
-    prefix(parser: Parser) {
-      const left = parser.parseExpression(0)
-      if (left!=null) parser.pushNextExpression(left)
+    power: 100,
+    prefix() {},
+    infix(parser: Parser, left: Expression[]) {
+      const right = parser.parseExpression(0)
+      if (right!=null) {
+        parser.nextExpressions.unshift(right) // ';',
+        if (parser.captureExpressions(parser.nextExpressions)) {
+          parser.nextExpressions = []
+        }
+      }
+      return left
     },
-    infix() {},
   },
 ]

@@ -1,4 +1,4 @@
-var expreva = window.expreva
+import expreva from '../../src'
 
 var $ = document.querySelector.bind(document)
 var $$ = function(sel) {

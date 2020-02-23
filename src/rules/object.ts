@@ -21,14 +21,23 @@ export default [
       const expr = parser.parseExpression(0)
       // Gather key-value pairs
       const allPairs = expr==null ? [] : [expr]
+
       let next
       while (next = parser.parseExpression(0)) {
         if (!next || next[0]!=='pair') break
         allPairs.push(next)
       }
-      if (next!=null) parser.pushNextExpression(next)
+
+      if (next!=null) {
+        parser.pushNextExpression(next)
+      }
+
       return ['obj', ...allPairs.map(a => {
-        (a as []).shift() // Remove keyword "pair"
+        if (Array.isArray(a)) {
+          (a as []).shift() // Remove keyword "pair"
+        } else {
+          a = [a, a] // // { key }
+        }
         return a
       })]
     },

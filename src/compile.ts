@@ -6,7 +6,7 @@ export const toString = (
 ): string =>
   !Array.isArray(expr)
     ? typeof expr==='object'
-      ? toString(['obj', Object.keys(expr).map(key => ['pair', key, expr[key]])])
+      ? toString(['obj', Object.keys(expr).map(key => [key, expr[key]])])
       : expr==null ? '' : (inner ? expr : expr)+''
     : `(${
       expr.map(e => e==='lambda' ? 'λ' : toString(e as Expression, true)).join(' ')
@@ -30,16 +30,17 @@ export const toFormattedString = (
     : !Array.isArray(expr)
       ? typeof expr==='object'
         ? toFormattedString(['obj', ...Object.keys(expr).map(key => [key, expr[key]])], {
-          indent
-          // inner: true
+          indent,
+          childIndent,
+          inner: true
         })
         : expr==null ? '' : (inner ? `${' '.repeat(childIndent)}${expr}` : expr)+''
     : typeof expr[0]!=='string'
       // List array
-      ? `${spaces}(${
+      ? `${spaces}(list ${
           expr.map((e, i) => toFormattedString(e, {
-            indent: i===0 ? 0 : !Array.isArray(e) ? (childIndent+1) : childIndent,
-            childIndent: childIndent+(i===0 ? 0 : 1),
+            indent: i===0 ? 0 : !Array.isArray(e) ? (childIndent+6) : childIndent,
+            childIndent: i===0 ? 0 : childIndent+6,
             inner: true
           })).join('\n')
         })`

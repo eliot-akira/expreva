@@ -1,4 +1,3 @@
-
 export type RuntimeEnvironment = Environment & EnvironmentProps
 
 export type EnvironmentProps = {
@@ -36,7 +35,7 @@ export class Environment {
    * Create child scope with parent and global as non-enumerable properties.
    * Symbols in parent scopes are looked up recursively in evaluateExpression.
    */
-  create(props?: EnvironmentProps) {
+  create(props?: EnvironmentProps): RuntimeEnvironment {
 
     // Root scope creates a top scope with no parent
     if (!this.global) return new Environment(props)
@@ -109,5 +108,5 @@ Environment.root = new Environment({
   }
 } as EnvironmentProps, false)
 
-export const createEnvironment = (props?: EnvironmentProps): Environment =>
+export const createEnvironment = (props?: EnvironmentProps): RuntimeEnvironment =>
   Environment.root.create(props)

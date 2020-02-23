@@ -1,5 +1,5 @@
-_*
-build
+/build
+/example/build
 
 node_modules
 *.lock

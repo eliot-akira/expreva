@@ -1,4 +1,4 @@
-const expreva = require('../../build/expreva')
+const expreva = require('../../build').default
 
 // Assertion helper
 const eva = it => (k, v) => {
@@ -8,7 +8,12 @@ const eva = it => (k, v) => {
   } catch(e) {
     r = e.message
   }
-  it(k, v instanceof Function ? v(r) : it.is(r, v))
+  const pass = v instanceof Function ? v(r) : it.is(r, v)
+  it(k, pass)
+  if (!pass && !(v instanceof Function)) {
+    console.log('expected', v)
+    console.log('actual', r)
+  }
 }
 
 const parse = expreva.parse.bind(expreva)
