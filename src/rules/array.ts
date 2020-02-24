@@ -5,49 +5,35 @@ export default [
   // Array
   {
     match: /^\s*(\[)\s*/,
-    name: 'open array',
+    name: 'open list',
     power: 80,
     prefix(parser: Parser) {
-      let expr = parser.parseExpression(0)
-      // Parse to right bracket
-      parser.parseExpression(this.power)
-      if (expr==null) return ['list']
-      if (Array.isArray(expr)) {
 
-        if (expr[0]==='args..') {
+      // Gather items
 
-          expr[0] = 'list'
-
-          // Merge expresssions pushed by object
-
-          const hasObject = expr.slice(1).reduce((acc, e) => acc || (Array.isArray(e) && e[0]==='obj'), false)
-
-          if (hasObject) {
-            let e
-            while (e = parser.nextExpressions.shift()) {
-              if (Array.isArray(e) && e[0]===';') {
-                break
-              }
-              if (Array.isArray(e) && e[0]==='args..') {
-                expr.push(...e.slice(1))
-              } else {
-                expr.push(e)
-              }
-            }
-          }
-
-          return expr
+      let exprs = []
+      let expr
+      while ((expr = parser.parseExpression(this.power)) != null) {
+        if (expr==='listEnd') break
+        if (expr===',') continue
+        if (Array.isArray(expr) && expr[0]==='args..') {
+          exprs.push(...expr.slice(1))
+          continue
         }
+        exprs.push(expr)
       }
-      return ['list', expr]
+
+      return ['list', ...exprs]
     },
     infix(parser: Parser, left: Expression) {},
   },
   {
     match: /^\s*(\])\s*/,
-    name: 'close array',
+    name: 'close list',
     power: 0,
-    prefix(parser) {},
+    prefix(parser) {
+      return 'listEnd'
+    },
     infix(parser: Parser, left: Expression[]) {},
   },
 ]

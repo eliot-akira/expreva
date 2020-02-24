@@ -3,38 +3,6 @@ import { Expression } from '../evaluate'
 
 export default [
 
-  // Function
-  {
-    match: /^\s*(\,)\s*/,
-    name: 'argument separator',
-    power: 5, // Stronger than )
-    prefix() {},
-    infix(parser: Parser, left: Expression) {
-
-      // Inside object definition
-      if (Array.isArray(left) && left[0]==='pair') return left
-
-      // Add right side to argument list
-      const right = parser.parseExpression(0) // Was 65, stronger than `->`, weaker than `=>`
-
-      let args: Expression = ['args..']
-
-      if (parser.isArgumentList(left)) {
-        args = left as Expression[]
-      } else if (left!=null) {
-        args.push(left)
-      }
-      if (right!=null) {
-        if (parser.isArgumentList(right)) {
-          args.push(...(right as []).slice(1))
-        } else {
-          args.push(right)
-        }
-      }
-      return args
-    }
-  },
-
   // Function application: x->y === y(x)
   {
     match: /^\s*(->)\s*/, // Must come before `-` or `>`
@@ -43,14 +11,16 @@ export default [
     prefix(parser: Parser) {
     },
     infix(parser: Parser, left: Expression) {
+
+      const expr = []
+
+      if (left!=null) expr.push(left)
+
+      // Target function
       const right = parser.parseExpression(this.power)
-      if (right==null) return left // No target function for apply
-      if (left==null) return ['->', right]
-      if (Array.isArray(left) && left[0]==='->') {
-        parser.pushNextExpression(left)
-        return ['->', right]
-      }
-      return [right, left]
+      if (right!=null) expr.unshift(right)
+
+      return expr
     },
   },
 
@@ -61,10 +31,24 @@ export default [
     power: 70,
     prefix(parser: Parser) {},
     infix(parser: Parser, left: Expression) {
+      // Argument definition
       if (left==null) left = []
       else if (!parser.isArgumentList(left)) {
-        left = ['args..', left]
+
+        if (Array.isArray(left)) {
+          // Unwrap single argument as expression (x)
+          if (left[0]==='do') left.shift()
+          // Unwrap multiple arguments as list
+          else if (left.length===1 && Array.isArray(left[0]) && left[0][0]!=='list') {
+            left = left[0]
+          }
+          left = ['args..', ...left]
+        } else left = ['args..', left]
       }
+
+      left = left.filter(e => e!==',')
+
+      // Function body
       const right = parser.parseExpression(0)
       return ['lambda', left, right]
     },

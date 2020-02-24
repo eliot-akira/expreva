@@ -5,43 +5,46 @@ import { Expression } from '../evaluate'
 const quoteString = (v: Expression) => typeof v==='string' ? ['`', v] : v
 
 export default [
-
-  {
-    match: /^\s*(\})\s*/,
-    name: 'close object',
-    power: 0,
-    prefix() {},
-    infix() {},
-  },
   {
     match: /^\s*(\{)\s*/,
     name: 'open object',
     power: 80,
     prefix(parser: Parser) {
-      const expr = parser.parseExpression(0)
+
       // Gather key-value pairs
-      const allPairs = expr==null ? [] : [expr]
 
-      let next
-      while (next = parser.parseExpression(0)) {
-        if (!next || next[0]!=='pair') break
-        allPairs.push(next)
-      }
-
-      if (next!=null) {
-        parser.pushNextExpression(next)
-      }
-
-      return ['obj', ...allPairs.map(a => {
-        if (Array.isArray(a)) {
-          (a as []).shift() // Remove keyword "pair"
-        } else {
-          a = [a, a] // // { key }
+      const pairs = []
+      let expr, mergeNext = false
+      while ((expr = parser.parseExpression(this.power)) != null) {
+        if (expr==='objEnd') break
+        if (expr===':') {
+          mergeNext = true
+          continue
         }
-        return a
-      })]
+        if (mergeNext) {
+          const prev = pairs.pop()
+          prev[1] = expr // { x: y }
+          pairs.push(prev)
+          mergeNext = false
+          continue
+        }
+        pairs.push([expr, expr]) // { x } by default
+      }
+
+      return ['obj', ...pairs]
     },
-    infix(parser: Parser, left: Expression) {},
+    infix(parser: Parser, left: Expression) {
+      return ['objStart', left]
+    },
+  },
+  {
+    match: /^\s*(\})\s*/,
+    name: 'close object',
+    power: 0,
+    prefix(parser: Parser) {
+      return 'objEnd'
+    },
+    infix() {},
   },
 
   {

@@ -106,7 +106,8 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       // Object from key-value pairs
     case 'obj':
       return ast.slice(1).reduce((obj, pair) => {
-        if (pair && pair[0]) {
+        if (!Array.isArray(pair)) pair = [pair]
+        if (pair!=null && pair[0]) {
           const key = typeof pair[0]==='string'
             ? pair[0]
             : evaluate(pair[0], env)

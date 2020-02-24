@@ -44,8 +44,8 @@ function setText(el, value) {
   el.innerText = value
 }
 
-function stringify(val) {
-  return expreva.toFormattedString(val)
+function renderValue(val) {
+  return expreva.toFormattedString(expreva.valueToExpression(val))
 }
 
 function renderInstructions(instr) {
@@ -107,7 +107,7 @@ function render() {
 
     log('Result', result)
 
-    setText($result, stringify(result))
+    setText($result, renderValue(result))
     clearError()
 
   } catch(e) {

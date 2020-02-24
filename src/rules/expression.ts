@@ -6,7 +6,7 @@ export default [
     match: /^\s*(\(\s*\))\s*/,
     name: 'empty list',
     power: 80,
-    prefix(parser) {},
+    prefix() {},
     infix(parser: Parser, left: Expression[]) {
       return left!=null ? [left] : ['list']
     },
@@ -16,27 +16,15 @@ export default [
     name: 'open expression',
     power: 80,
     prefix(parser: Parser) {
-
-      parser.expressionLevel++
-
-      // Capture statements
-      let subExprs: Expression[] = []
-      parser.pushExpressionCapturer((subExpr: Expression[]) => {
-        subExprs.unshift(...subExpr)
-      })
-
-      let expr = parser.parseExpression(0)
-      if (subExprs.length) {
-        expr = ['do', expr, ...subExprs]
-      }
-      parser.popExpressionCapturer()
+      const expr = parser.parseExpression(0)
 
       // Parse to right parenthesis
       parser.parseExpression(this.power)
 
-      parser.expressionLevel--
+      // Disambiguate between x and (x)
+      if (typeof expr==='string') return ['do', expr]
 
-      return expr // parser.handleNextExpressions(expr as Expression)
+      return expr
     },
     infix(parser: Parser, left: Expression) {
       const right = parser.parseExpression(0)
@@ -57,16 +45,13 @@ export default [
   {
     match: /^\s*(;+)\s*/,
     name: 'end statement',
-    power: 100,
-    prefix() {},
-    infix(parser: Parser, left: Expression[]) {
+    power: 0,
+    prefix(parser) {
       const right = parser.parseExpression(0)
-      if (right!=null) {
-        parser.nextExpressions.unshift(right) // ';',
-        if (parser.captureExpressions(parser.nextExpressions)) {
-          parser.nextExpressions = []
-        }
-      }
+      parser.scheduleExpression(right)
+    },
+    infix(parser: Parser, left: Expression[]) {
+      parser.scheduleExpression(';')
       return left
     },
   },

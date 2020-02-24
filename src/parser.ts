@@ -16,10 +16,8 @@ export class Parser {
   public lexer: Lexer
   public tokens: Token[] = []
   public cursor: number = 0
-  public expressionLevel: number = 0
   public expressions: Expression = []
-  public nextExpressions: Expression[] = []
-  public expressionCapturer: ((expr: Expression) => void)[] = []
+  public scheduledExpressions: Expression[] = []
 
   constructor(lexer: Lexer) {
     this.lexer = lexer
@@ -40,24 +38,22 @@ export class Parser {
 
     this.tokens = this.lexer.tokenize(input)
     this.cursor = 0
-    this.expressionLevel = 0
     this.expressions = []
-    this.nextExpressions = []
+    this.scheduledExpressions = []
 
     do {
+      const expr = this.parseExpression()
 
-      const expr = this.handleNextExpressions(
-        this.parseExpression()
-      )
       if (expr==null || (Array.isArray(expr) && !expr.length)) continue
 
       this.expressions.push(expr as Expression)
 
     } while (this.current())
 
-    this.expressions = this.handleUnexpandedKeywords(
-      this.handleMultipleExpressions(this.expressions)
-    )
+    this.expressions =
+      this.handleMultipleExpressions(
+        this.handleUnexpandedKeywords(this.expressions)
+      ) || []
 
     return this.expressions
   }
@@ -74,10 +70,28 @@ export class Parser {
   parseExpression(rightBindingPower: number = 0): Expression | void {
 
     let token
-    if (!(token = this.current())) return
-    this.next()
+    if (!(token = this.current())) {
+      if (this.hasScheduled()) return this.nextScheduled()
+      return
+    }
 
-    let expr = token.prefix(this)
+    let expr
+    if (this.hasScheduled()) {
+      expr = this.nextScheduled()
+    } else {
+      this.next()
+      expr = token.prefix(this)
+    }
+
+    // Next scheduled, possibly from prefix()
+    if (this.hasScheduled()) {
+      if (expr==null) return
+      const next = this.nextScheduled()
+      return expr===',' ? next : ['do', expr, next]
+    }
+
+    // Gather expression to the right
+
     token = this.current()
 
     while (token && rightBindingPower < token.power) {
@@ -87,7 +101,18 @@ export class Parser {
       )
       token = this.current()
     }
+
     return expr
+  }
+
+  scheduleExpression(...exprs: Expression[]) {
+    this.scheduledExpressions.push(...exprs.filter(e => e!=null))
+  }
+  hasScheduled() {
+    return this.scheduledExpressions.length > 0
+  }
+  nextScheduled() {
+    return this.scheduledExpressions.shift()
   }
 
   /**
@@ -99,29 +124,8 @@ export class Parser {
    * - Array and object member x.y
    */
 
-  /**
-   * Support end statements `;` to push expressions
-   */
-  pushNextExpression(expr: Expression) {
-    this.nextExpressions.push(expr)
-  }
 
-  /**
-   * Combine pushed expressions
-   */
-  handleNextExpressions(expr: Expression | void) {
-    if (!this.nextExpressions.length) return expr
-    if (expr!=null) {
-      this.nextExpressions.unshift(expr)
-    }
-    expr = this.handleMultipleExpressions(
-      this.nextExpressions
-    )
-    this.nextExpressions = []
-    return expr
-  }
-
-  handleMultipleExpressions(expr: Expression) {
+  handleMultipleExpressions(expr: Expression | void): Expression | void {
     if (!Array.isArray(expr)) return expr
 
     const count = expr.length
@@ -138,38 +142,20 @@ export class Parser {
   /**
    * After all expressions are parsed, scan for unexpanded keywords
    */
-  handleUnexpandedKeywords(expr: Expression): Expression {
-    if (!expr || !Array.isArray(expr)) return expr
-
-    // Restore "." for number, instead of member
-    if (expr[0]==='get' && typeof expr[1]==='number' && typeof expr[2]==='number') {
-      return expr[1] + parseFloat(`0.${expr[2]}`)
-    }
-    // Arguments "args.."
-    if (this.isArgumentList(expr)) {
-      expr[0] = 'list'
-    }
-    for (let i=0, len=expr.length; i < len; i++) {
-      // Apply argument to function
-      if (Array.isArray(expr[i]) && expr[i][0]==='->') {
-        // Combine with previous expression to create list form
-        expr[i - 1] = [
-          expr[i][1], // Target function to apply
-          expr[i - 1] // Argument
-        ]
-        expr.splice(i, 1)
-        i--
-      }
-      expr[i] = this.handleUnexpandedKeywords(expr[i])
-    }
-    return expr.filter(e => e!=null&& e!==';') //
+  handleUnexpandedKeywords(expr: Expression | void): Expression | void {
+    return !Array.isArray(expr)
+    ? (expr!==';' && expr!=='objEnd' && expr!=='listEnd' && expr!==',' && expr!==':'
+        ? expr
+        : undefined // Parser error?
+      )
+    : expr.map(e => this.handleUnexpandedKeywords(e)).filter(e => e!=null)
   }
 
   /**
    * Arguments list
    */
 
-  isArgumentList(expr) {
+  isArgumentList(expr: Expression) {
     return Array.isArray(expr) && expr[0]==='args..'
   }
 
@@ -196,22 +182,6 @@ export class Parser {
     return expr.concat(args as Expression)
   }
 
-  pushExpressionCapturer(fn) {
-    this.expressionCapturer.push(fn)
-  }
-
-  popExpressionCapturer() {
-    this.expressionCapturer.pop()
-  }
-
-  captureExpressions(exprs: Expression[]) {
-    const fn = this.expressionCapturer[
-      this.expressionCapturer.length - 1
-    ]
-    if (!fn) return false
-    fn(exprs)
-    return true
-  }
 }
 
 /**

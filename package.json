@@ -6,7 +6,7 @@
     "dev": "cd example && tgb dev",
     "build": "tgb build",
     "tdd": "concurrently --prefix none --handle-input 'sleep 2 && node src/tests' 'tgb dev'",
-    "_test": "if [ ! -d \"build\" ]; then yarn build; fi; node src/tests",
+    "test": "if [ ! -d \"build\" ]; then yarn build; fi; node src/tests",
     "type": "tsc --declaration --emitDeclarationOnly",
     "deploy": "./deploy"
   },

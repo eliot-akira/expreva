@@ -8,7 +8,7 @@ import {
   EnvironmentProps,
   RuntimeEnvironment
 } from './evaluate'
-import { toString, toFormattedString } from './compile'
+import { toString, toFormattedString, valueToExpression } from './compile'
 import rules from './rules'
 
 const parser = new Parser(
@@ -21,6 +21,7 @@ export interface Expreva {
   createEnvironment(props?: EnvironmentProps): RuntimeEnvironment
   toString: (expr: Expression) => string
   toFormattedString: (expr: Expression) => string
+  valueToExpression: (value: any) => Expression
 }
 
 const expreva = {
@@ -33,7 +34,8 @@ const expreva = {
   },
   createEnvironment,
   toString,
-  toFormattedString
+  toFormattedString,
+  valueToExpression
 }
 
 export default expreva

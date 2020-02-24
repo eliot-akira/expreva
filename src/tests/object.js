@@ -5,6 +5,7 @@ test('object', it => {
 
   is(`{ a: 1, b: 2, c: 3 }`, { a: 1, b: 2, c: 3 })
   is(`key = 'value'; { key }`, { key: 'value' })
+  is('[ {}, 1 ]', [ {}, 1 ])
 
   // TODO: Support dynamic key with single variable (x)
   /*is(`

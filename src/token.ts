@@ -64,14 +64,14 @@ export class Token {
    * Prefix position
    */
   prefix(parser: Parser): Expression | void {
-    return this.error(`Unhandled prefix: ${this.name}`);
+    return this.error(`Unhandled prefix "${this.name}"`);
   }
 
   /**
    * Infix position
    */
   infix(parser: Parser, left: Expression | void): Expression | void {
-    return this.error(`Unhandled infix: ${this.name}`);
+    return this.error(`Unhandled infix "${this.name}"`);
   }
 }
 
