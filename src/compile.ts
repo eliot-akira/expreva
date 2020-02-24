@@ -1,4 +1,4 @@
-import { Expression } from './evaluate'
+import { Expression, Lambda } from './evaluate'
 
 export const toString = (
   expr: Expression,
@@ -18,7 +18,7 @@ export const valueToExpression = (
 
   if (typeof value==='object') {
     if (Array.isArray(value)) {
-      return value.map(valueToExpression)
+      return ['list', ...value.map(valueToExpression)]
     }
     // Obj -> (obj (key value))
     return ['obj', ...Object.keys(value).map(k => [k, valueToExpression(value[k])])]
@@ -38,14 +38,16 @@ export const toFormattedString = (
 ): string => {
   const {
     indent = 0,
-    childIndent = indent,
+    childIndent = indent as number,
     top = true,
     inner = false
   } = internalProps || {}
 
   // Native function
   if (expr instanceof Function) {
-    return expr.lambda ? expr.toString() : expr.name ? expr.name : '(native function)'
+    return (expr as Lambda).lambda
+      ? expr.toString()
+      : expr.name ? expr.name : '(native function)'
   }
 
   if (!Array.isArray(expr)) {
@@ -90,7 +92,7 @@ export const toFormattedString = (
 
     const body = !args.length ? '' : "\n"+(
       args.map(e => toFormattedString(e, {
-        indent: childIndent+prefixLength, // "("+name+space+"("
+        indent: childIndent + prefixLength, // "("+name+space+"("
         inner: true
       })).join('\n'))
 
@@ -105,8 +107,8 @@ export const toFormattedString = (
 
   return `${spaces}${prefix}${
     expr.map((e, i) => toFormattedString(e, {
-      indent: i===0 ? 0 : !Array.isArray(e) ? (childIndent + prefixLength) : childIndent,
-      childIndent: i===0 ? 0 : childIndent + prefixLength,
+      indent: i===0 ? 0 : childIndent + prefixLength, //!Array.isArray(e) ? (childIndent + prefixLength) : childIndent,
+      childIndent: /*i===0 ? 0 : */ childIndent + prefixLength,
       top: false,
       inner: true
     })).join('\n')
