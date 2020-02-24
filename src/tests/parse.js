@@ -54,11 +54,10 @@ test('parse statements', it => {
     'f()': '(f)',
     'f(1)': '(f 1)',
 
-    // Multiple statements as an argument - Not supported
-    // 'f(1;2)': '(f (do 1 2))',
-    // 'f((1;2),3)': '(f (do 1 2) 3)',
-    // 'f((1;2))': '(f (do 1 2))',
-    // 'f(1, (2;3))': '(f 1 (do 2 3))',
+    'f(1;2)': '(f (do 1 2))',
+    'f((1;2),3)': '(f (do 1 2) 3)',
+    'f((1;2))': '(f (do 1 2))',
+    'f(1, (2;3))': '(f 1 (do 2 3))',
 
     'a={};b={};c={}': '(do (def a (obj)) (def b (obj)) (def c (obj)))',
 
@@ -66,6 +65,8 @@ test('parse statements', it => {
     'x=>3': '(λ (x) 3)',
     '(x)=>3': '(λ (x) 3)',
     '(x,y,z)=>x+y+z': '(λ (x y z) (+ (+ x y) z))',
+
+    'x => (a;b;c)': '(λ (x) (do a b c))',
 
     'f=x=>x;f(1)': '(do (def f (λ (x) x)) (f 1))',
     '(f=x=>x);f(1)': '(do (def f (λ (x) x)) (f 1))',
@@ -89,6 +90,7 @@ test('parse statements', it => {
   }
 
   for (const key of Object.keys(exprs)) {
-    it(key, it.is(toString(parse(key)), exprs[key]))
+    const result = toString(parse(key))
+    it(key, it.is(result, exprs[key]), result)
   }
 })

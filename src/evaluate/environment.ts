@@ -8,8 +8,10 @@ export class Environment {
 
   // See bottom of file for definition
   static root: RuntimeEnvironment
-  // Top scope for all child scopes
+  // Global scope
   readonly global?: RuntimeEnvironment
+  // Parent scope
+  readonly parent?: RuntimeEnvironment
 
   constructor(props?: EnvironmentProps, global?: RuntimeEnvironment | false) {
     if (global!==false) {
@@ -21,7 +23,7 @@ export class Environment {
     }
     if (!props) return
     Object.keys(props).forEach(key => {
-      this[key] = props[key] instanceof Function
+      (this as any)[key] = props[key] instanceof Function
         ? props[key].bind(this)
         : props[key]
     })
@@ -37,7 +39,7 @@ export class Environment {
    */
   create(props?: EnvironmentProps): RuntimeEnvironment {
 
-    // Root scope creates a top scope with no parent
+    // Root scope has no parent
     if (!this.global) return new Environment(props)
 
     const env = new Environment(props, this.global)
@@ -64,6 +66,7 @@ export class RuntimeError extends Error {
 Environment.root = new Environment({
   true: true,
   false: false,
+  nil: null,
 
   '+': (a: number = 0, b: number = 0): number => a + b,
   '-': (a: number = 0, b: number = 0): number => a - b,
@@ -83,11 +86,13 @@ Environment.root = new Environment({
   '>=': (a: any, b: any): boolean => a >= b,
 
   map: (fn: (value: any, index: number | string) => any) =>
-    (arr: any[] | { [key: string]: any }) =>
-      Array.isArray(arr) ? arr.map(fn) : (Object.keys(arr).reduce((obj, key) => {
-        obj[key] = fn(key, arr[key])
-        return obj
-      }, {})),
+    (arr: string | any[] | { [key: string]: any }) =>
+      typeof arr==='string' ? (arr.split('')).map(fn)
+      : Array.isArray(arr) ? arr.map(fn) // Array: value, index
+        : (Object.keys(arr).reduce((obj: { [key: string]: any }, key) => {
+          obj[key] = fn(key, arr[key]) // Object: key, value
+          return obj
+        }, {})),
 
   join: (separator: string | any[] | { [key: string]: any }) =>
     (target: any[] | { [key: string]: any }) =>

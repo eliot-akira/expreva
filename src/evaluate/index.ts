@@ -30,7 +30,6 @@ export const bindFunctionScope = function(
 ): RuntimeEnvironment {
 
   const boundEnv = env.create()
-
   args.forEach((a, i) => a == '&'
     // Spread arguments
     ? boundEnv[
@@ -56,16 +55,15 @@ export function expandMacro(ast: Expression, env: RuntimeEnvironment): Expressio
 export const evaluateExpression = function(ast: Expression, env: RuntimeEnvironment): ExpressionResult {
   return ast instanceof Array                               // List form?
     ? ast.map((...a) => evaluate(a[0] as Expression, env))  // Evaluate list
-    : (typeof ast === 'string')                             // Symbol
-      ? ast==='env' ? env                                   // Magic symbol for current environment
-        : env.propertyIsEnumerable(ast)                     // Symbol in current env (was: ast in env)
-          ? env[ ast ]                                      // Lookup symbol
-          : env.parent
-            ? evaluateExpression(ast, env.parent)           // Recursively look up parent scope
-            : Environment.root.propertyIsEnumerable(ast)    // Symbol in default env
-              ? Environment.root[ ast ]                     // Lookup symbol
-              //: undefined                                 // Undefined
-              : env.throw({ message: `Undefined symbol "${ast}"` })
+    : (typeof ast === 'string')                             // Symbol?
+      ? ast==='local' ? env                                 // Local environment
+      : ast==='global' ? env.global                         // Global environment
+      : env.propertyIsEnumerable(ast) ? env[ ast ]          // Symbol in current env (was: ast in env)
+        : env.parent ? evaluateExpression(ast, env.parent)  // Recursively look up parent scope
+          : Environment.root.propertyIsEnumerable(ast)      // Symbol in default env
+            ? Environment.root[ ast ]
+            //: undefined                                   // Undefined
+            : env.throw({ message: `Undefined symbol "${ast}"` })
       : ast                                                 // Primitive value: number, boolean, function
 }
 
@@ -105,14 +103,14 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
 
       // Object from key-value pairs
     case 'obj':
-      return ast.slice(1).reduce((obj, pair) => {
-        if (!Array.isArray(pair)) pair = [pair]
-        if (pair!=null && pair[0]) {
-          const key = typeof pair[0]==='string'
-            ? pair[0]
-            : evaluate(pair[0], env)
-          obj[ key ] = evaluate(pair[1], env)
-        }
+      return ast.slice(1).reduce((obj: { [key: string]: any }, pair) => {
+        if (pair==null) return obj
+        if (!Array.isArray(pair)) pair = [pair, pair]
+        const [left, right] = pair as Expression[]
+        const key: string = typeof left==='object'
+          ? evaluate(left, env)
+          : left
+        obj[ key ] = evaluate(right, env)
         return obj
       }, {})
 
@@ -124,17 +122,20 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       if (value instanceof Function) {
         Object.defineProperty(value, 'name', {
           value: typeof varName==='string' ? varName : 'anonymous',
-          writable: true
+          // writable: true
         })
       }
-      // Set member via get
-      if (Array.isArray(varName)) {
-        const member = varName.pop()
-        varName.push(['def', evaluate(member as Expression, env), ['`', value]])
-        ast = varName
-        continue
+      if (typeof varName==='string') {
+        // Global environment by default
+        return (env.global || env)[ varName as string ] = value
       }
-      return env[ varName as string ] = value
+      if (!Array.isArray(varName)) return
+      // Set member via get
+      const result = [...varName] // Do not mutate original ast!
+      const member = result.pop()
+      result.push(['def', evaluate(member as Expression, env), ['`', value]])
+      ast = result
+      continue
     }
 
     // Get variable or get/set member
@@ -154,8 +155,8 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       let value = rootValue
       for (const member of members) {
         // Define member
-        if (member[0]==='def') {
-          value = (value[ member[1] ] = evaluate(member[2], env))
+        if (Array.isArray(member) && member[0]==='def') {
+          value = (value[ member[1] as string | number ] = evaluate(member[2], env))
           break
         }
         const key = evaluate(member as Expression, env)
@@ -190,28 +191,27 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       try {
         return evaluate(ast[1] as Expression, env)
       } catch (e) {
-        return evaluate(ast[2][2], bindFunctionScope(env, [ ast[2][1] ], [e]))
+        if (!Array.isArray(ast[2])) return
+        const argDef = ast[2][1]
+        const body = ast[2][2]
+        return evaluate(body, bindFunctionScope(env, [ argDef ], [e]))
       }
 
     // Define new function
     case 'λ':
     case 'lambda': {
       const args = Array.isArray(ast[1]) ? ast[1] : []
+      const body = ast[2]
       const f: Lambda = Object.assign(
-        (...givenArgs: any) => evaluate(
-          ast[2] as Expression,
+        (...givenArgs: any[]) => evaluate(
+          body as Expression,
           bindFunctionScope(env, args, givenArgs)
         ),
         {
-          lambda: {
-            args: ast[1] as Expression,  // Argument definition
-            body: ast[2] as Expression,  // Function body
-            scope: env,                  // Function scope
-          } as LambdaProps,
-
+          lambda: { args, body, scope: env } as LambdaProps,
           // Print definition
           toString() {
-            const def = ['lambda', ast[1], ast[2]]
+            const def = ['lambda', args, body]
             return toString(def) // f.name ? ['def', f.name, def] :
           }
         }
@@ -222,16 +222,18 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
     // Tail-call optimization cases
 
     // New environment with bindings
-    case 'let':
-      if (!ast[1] || !Array.isArray(ast[1])) return
+    case 'let': {
+      if (ast[1]==null || !Array.isArray(ast[1])) return
       env = env.create()
-      ;(ast[1] as []).forEach((value, i) => {
+      const pairs = ast[1] as [] // key, value, ..
+      pairs.forEach((value, i) => {
         if (i % 2) {
-          env[ ast[1][ i - 1 ] ] = evaluate(value, env)
+          env[ pairs[ i - 1 ] ] = evaluate(value, env)
         }
       })
       ast = ast[2] as Expression
       continue
+    }
 
     // Multiple forms for side-effects
     case 'do':

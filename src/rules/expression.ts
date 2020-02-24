@@ -16,10 +16,14 @@ export default [
     name: 'open expression',
     power: 80,
     prefix(parser: Parser) {
-      const expr = parser.parseExpression(0)
+      // Called on infix body, for example `=>`
 
-      // Parse to right parenthesis
+      let expr = parser.parseExpression(0)
+
+      // Parse to right parenthesis or next statement
       parser.parseExpression(this.power)
+
+      expr = parser.withNextStatements(this.power, expr)
 
       // Disambiguate between x and (x)
       if (typeof expr==='string') return ['do', expr]
@@ -27,9 +31,14 @@ export default [
       return expr
     },
     infix(parser: Parser, left: Expression) {
-      const right = parser.parseExpression(0)
-      // Parse to right parenthesis
+
+      let right = parser.parseExpression(0)
+
+      // Parse to right parenthesis or next statement
       parser.parseExpression(this.power)
+
+      right = parser.withNextStatements(this.power, right)
+
       if (left==null) return right
       return [left, right]
     },
@@ -46,7 +55,7 @@ export default [
     match: /^\s*(;+)\s*/,
     name: 'end statement',
     power: 0,
-    prefix(parser) {
+    prefix(parser: Parser) {
       const right = parser.parseExpression(0)
       parser.scheduleExpression(right)
     },

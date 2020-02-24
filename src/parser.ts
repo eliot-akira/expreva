@@ -115,6 +115,21 @@ export class Parser {
     return this.scheduledExpressions.shift()
   }
 
+  withNextStatements(power: number, expr: Expression) {
+    // Gather statements, if any
+    let num = 0
+    while (this.hasScheduled()) {
+      num++
+      const next = this.nextScheduled()
+      this.parseExpression(power)
+      if (next==null)  continue
+      if (num > 1) expr.push(next)
+      else expr = ['do', expr, next]
+    }
+
+    return expr
+  }
+
   /**
    * Functions below support additional syntax, such as:
    *

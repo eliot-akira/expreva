@@ -3,10 +3,10 @@
   "version": "2.0.0",
   "description": "Expreva - A language based on arithmetic and algebra expressions",
   "scripts": {
-    "dev": "cd example && tgb dev",
     "build": "tgb build",
-    "tdd": "concurrently --prefix none --handle-input 'sleep 2 && node src/tests' 'tgb dev'",
-    "test": "if [ ! -d \"build\" ]; then yarn build; fi; node src/tests",
+    "dev": "concurrently --prefix none --handle-input 'sleep 2 && testra -w build/tests' 'tgb dev'",
+    "sandbox": "cd example && tgb dev",
+    "test": "if [ ! -d \"build\" ]; then yarn build; fi; testra build/tests",
     "type": "tsc --declaration --emitDeclarationOnly",
     "deploy": "./deploy"
   },
@@ -21,9 +21,9 @@
   ],
   "dependencies": {},
   "devDependencies": {
-    "@tangible/builder": "^1.3.2",
-    "concurrently": "^5.0.0",
-    "testra": "^1.0.2"
+    "@tangible/builder": "^1.3.3",
+    "concurrently": "^5.1.0",
+    "testra": "^1.0.7"
   },
   "keywords": [
     "expression",

@@ -16,6 +16,7 @@ export const valueToExpression = (
   value: any
 ): Expression => {
 
+  if (value==null) return 'nil'
   if (typeof value==='object') {
     if (Array.isArray(value)) {
       return ['list', ...value.map(valueToExpression)]
@@ -26,7 +27,6 @@ export const valueToExpression = (
   // String
   if (typeof value==='string') return ['`', value]
   if (typeof value==='boolean') return value ? 'true' : 'false'
-  if (value==null) return 'nil'
 
   // Number
   return value
