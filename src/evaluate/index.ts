@@ -117,28 +117,37 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
     // Set variable
     case 'def': {
       const varName = ast[1]
-      const value = evaluate(ast[2] as Expression, env)
-      // Function name
+      let value = ast[2]
+
+      // If target is an expression, assume get and set member
+      if (Array.isArray(varName)) {
+        const result = [...varName] // Do not mutate original ast!
+        const member = result.pop()
+        result.push([
+          'def',
+          evaluate(member as Expression, env),
+          value
+        ])
+        ast = result
+        continue
+      }
+
+      value = evaluate(value as Expression, env)
+
+      // If assigning function, it takes the variable name
       if (value instanceof Function) {
         Object.defineProperty(value, 'name', {
-          value: typeof varName==='string' ? varName : 'anonymous',
-          // writable: true
+          value: typeof varName==='string' ? varName : 'anonymous'
         })
       }
       if (typeof varName==='string') {
-        // Global environment by default
+        // Variable in global environment by default
         return (env.global || env)[ varName as string ] = value
       }
-      if (!Array.isArray(varName)) return
-      // Set member via get
-      const result = [...varName] // Do not mutate original ast!
-      const member = result.pop()
-      result.push(['def', evaluate(member as Expression, env), ['`', value]])
-      ast = result
-      continue
+      return
     }
 
-    // Get variable or get/set member
+    // Get variable or its member
     case 'get': {
       const varName = ast[1]
       const members = ast.slice(2)
@@ -154,9 +163,11 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
 
       let value = rootValue
       for (const member of members) {
-        // Define member
+        // Member can be an expression to define
         if (Array.isArray(member) && member[0]==='def') {
-          value = (value[ member[1] as string | number ] = evaluate(member[2], env))
+          value = (
+            value[ member[1] as string | number ] = evaluate(member[2], env)
+          )
           break
         }
         const key = evaluate(member as Expression, env)
@@ -164,7 +175,7 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
           value = key(value)
           continue
         }
-        if (typeof key!=='string' && typeof key!=='number'
+        if ((typeof key!=='string' && typeof key!=='number')
           || value[key]==null || !value.hasOwnProperty(key)
         ) return
         value = value[key]

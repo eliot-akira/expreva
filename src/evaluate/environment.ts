@@ -77,8 +77,12 @@ Environment.root = new Environment({
   '||': (a: any, b: any): boolean => a || b,
   '&&': (a: any, b: any): boolean => a && b,
 
-  '==': (a: any, b: any): boolean => a === b,
-  '!=': (a: any, b: any): boolean => a !== b,
+  '==': (a: any, b: any): boolean =>
+    // undefined == nil
+    a==null && b==null ? true : a === b,
+  '!=': function(a: any, b: any): boolean {
+    return !this['=='](a,b) //  a !== b
+  },
 
   '<': (a: any, b: any): boolean => a < b,
   '<=': (a: any, b: any): boolean => a <= b,

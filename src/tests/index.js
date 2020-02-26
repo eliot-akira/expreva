@@ -19,10 +19,12 @@ require('./assignment')
 require('./list')
 require('./object')
 require('./member')
-require('./statement')
+require('./nil')
 
 require('./function')
 require('./apply')
 // require('./spread')
+
+require('./statement')
 
 module.exports = runTests()
