@@ -43,12 +43,14 @@ export class Parser {
 
     do {
       const expr = this.parseExpression()
-
       if (expr==null || (Array.isArray(expr) && !expr.length)) continue
 
       this.expressions.push(expr as Expression)
 
     } while (this.current())
+
+    this.expressions.push(...this.scheduledExpressions)
+    this.scheduledExpressions = []
 
     this.expressions =
       this.handleMultipleExpressions(
@@ -163,7 +165,9 @@ export class Parser {
         ? expr
         : undefined // Parser error?
       )
-    : expr.map(e => this.handleUnexpandedKeywords(e)).filter(e => e!=null)
+    : expr[0]==='get' && typeof expr[1]==='number' && typeof expr[2]==='number'
+      ? expr[1] + parseFloat(`0.${expr[2]}`)
+      : expr.map(e => this.handleUnexpandedKeywords(e)).filter(e => e!=null)
   }
 
   /**
