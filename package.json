@@ -14,7 +14,7 @@
     "expr": "run"
   },
   "main": "index.js",
-  "browser": "web/expreva.js",
+  "browser": "web/expreva.min.js",
   "files": [
     "**/*.js",
     "readme.md"
