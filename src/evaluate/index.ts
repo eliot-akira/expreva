@@ -183,20 +183,6 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       return value
     }
 
-    // Get or set an array or object attribute
-    // case '.-': {
-    //   const el = evaluateExpression(ast.slice(1), env)
-    //   const x = el[0][ el[1] ]
-    //   return 2 in el ? (el[0][ el[1] ] = el[2]) : x
-    // }
-
-    // // Call object method
-    // case '.': {
-    //   const el = evaluateExpression(ast.slice(1), env)
-    //   const x = el[0][ el[1] ]
-    //   return x.apply(el[0], el.slice(2))
-    // }
-
     // Try / Catch
     case 'try':
       try {

@@ -1,6 +1,6 @@
 import argumentRules from './argument'
 import arithmeticRules from './arithmetic'
-import arrayRules from './array'
+import listRules from './list'
 import comparisonRules from './comparison'
 import conditionalRules from './conditional'
 import expressionRules from './expression'
@@ -57,7 +57,7 @@ export default [
   ...argumentRules,
   ...keyValuePairRules,
   ...functionRules,
-  ...arrayRules,
+  ...listRules,
   ...objectRules,
 
   ...comparisonRules,

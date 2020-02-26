@@ -50,6 +50,11 @@ test('parse valid', it => {
 
 test('parse statements', it => {
   const exprs = {
+
+    '[ 1 + 2 ]': '(list (+ 1 2))',
+    '[ 1 + 2, 3 + 4 ]': '(list (+ 1 2) (+ 3 4))',
+    '{ a: 1 + 2 }': '(obj (a (+ 1 2)))',
+
     'f': 'f',
     'f()': '(f)',
     'f(1)': '(f 1)',
@@ -91,6 +96,6 @@ test('parse statements', it => {
 
   for (const key of Object.keys(exprs)) {
     const result = toString(parse(key))
-    it(key, it.is(result, exprs[key]), result)
+    it(key, it.is(result, exprs[key]), 'expected', exprs[key], 'actual', result)
   }
 })

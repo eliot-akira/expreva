@@ -6,7 +6,7 @@ export default [
   {
     match: /^\s*(:)\s*/,
     name: ':',
-    power: 0, // Was 20, precendence for  - different from
+    power: 0,
     prefix(parser: Parser) {
       return ':'
     },

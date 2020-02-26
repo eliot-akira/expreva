@@ -6,10 +6,12 @@ test('object', it => {
   is(`{ a: 1, b: 2, c: 3 }`, { a: 1, b: 2, c: 3 })
   is(`key = 'value'; { key }`, { key: 'value' })
   is('[ {}, 1 ]', [ {}, 1 ])
+  // is('{ a: 1 + 2 }', { a: 3 })
 
-  // TODO: Support dynamic key with single variable (x)
-  /*is(`
+  // Dynamic key with single variable (x)
+  is(`
 f = x => {
+  x: 'literal key',
   (x): (
     if (x>3) 'greater than 3'
     else if (x==3) 'is 3'
@@ -18,7 +20,9 @@ f = x => {
   another: 'value'
 }
 f(3)
-`,
-  { 3: 'is 3', another: 'value' }
-  )*/
+`, {
+    x: 'literal key',
+    3: 'is 3',
+    another: 'value'
+  })
 })

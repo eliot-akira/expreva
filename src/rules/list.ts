@@ -12,16 +12,20 @@ export default [
       // Gather items
 
       let exprs = []
-      let expr
-      while ((expr = parser.parseExpression(this.power)) != null) {
+      let expr = parser.parseExpression(0)
+      if (expr==null) return ['list']
+
+      do {
         if (expr==='listEnd') break
         if (expr===',') continue
         if (Array.isArray(expr) && expr[0]==='args..') {
           exprs.push(...expr.slice(1))
           continue
         }
+
         exprs.push(expr)
-      }
+
+      } while ((expr = parser.parseExpression(this.power)) != null)
 
       return ['list', ...exprs]
     },
