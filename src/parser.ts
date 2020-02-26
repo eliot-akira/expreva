@@ -150,7 +150,6 @@ export class Parser {
 
     // Unwrap expression
     if (count===1) return expr.shift() as Expression
-
     // Evaluate multiple expressions
     expr.unshift('do')
     return expr

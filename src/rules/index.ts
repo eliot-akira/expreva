@@ -54,7 +54,6 @@ import symbolRules from './symbol'
 export default [
 
   ...expressionRules,
-  ...argumentRules,
   ...keyValuePairRules,
   ...functionRules,
   ...listRules,
@@ -64,6 +63,7 @@ export default [
   ...conditionalRules,
 
   // Simplest regex matches
+  ...argumentRules,
   ...arithmeticRules,
   ...symbolRules
 ]

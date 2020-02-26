@@ -44,7 +44,7 @@ export default [
     },
   },
   {
-    match: /^\s*;*\s*(\))\s*/, // ), ;)
+    match: /^\s*;*\s*(\))\s*/, // Include trailing end statement ;)
     name: 'close expression',
     power: 0,
     prefix() {},

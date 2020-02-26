@@ -19,7 +19,15 @@ export default [
         if (expr==='listEnd') break
         if (expr===',') continue
         if (Array.isArray(expr) && expr[0]==='args..') {
-          exprs.push(...expr.slice(1))
+          expr.shift()
+          // Handle trailing comma
+          const last = expr.pop()
+          if (last==='listEnd') {
+            exprs.push(...expr)
+            break
+          }
+          expr.push(last as Expression)
+          exprs.push(...expr)
           continue
         }
 
