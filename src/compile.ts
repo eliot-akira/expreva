@@ -12,21 +12,35 @@ export const toString = (
       expr.map(e => e==='lambda' ? 'λ' : toString(e as Expression, true)).join(' ')
     })`
 
+let valuesSeen = new Map
 export const valueToExpression = (
-  value: any
+  value: any,
+  inner = false
 ): Expression => {
 
-  if (value==null) return 'nil'
+  if (!inner) valuesSeen.clear()
+  else if (valuesSeen.get(value)) {
+    return '..'
+  } else {
+    valuesSeen.set(value, true)
+  }
+
+  if (value==null) return inner ? 'nil' : ''
   if (typeof value==='object') {
     if (Array.isArray(value)) {
-      return ['list', ...value.map(valueToExpression)]
+      return ['list', ...value.map(e => valueToExpression(e, true))]
     }
     // Obj -> (obj (key value))
-    return ['obj', ...Object.keys(value).map(k => [k, valueToExpression(value[k])])]
+    return ['obj', ...Object.keys(value).map(k => [k, valueToExpression(value[k], true)])]
   }
   // String
-  if (typeof value==='string') return ['`', value]
+  if (typeof value==='string') return JSON.stringify(value) //['`', value]
   if (typeof value==='boolean') return value ? 'true' : 'false'
+  if (typeof value==='function') {
+    return value.lambda ? value.toString() : (
+      value.name && !value.name.match(/^bound/) ? value.name : 'λ'
+    )
+  }
 
   // Number
   return value

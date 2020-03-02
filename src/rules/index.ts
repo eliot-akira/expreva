@@ -1,6 +1,7 @@
 import argumentRules from './argument'
 import arithmeticRules from './arithmetic'
 import listRules from './list'
+import commentRules from './comment'
 import comparisonRules from './comparison'
 import conditionalRules from './conditional'
 import expressionRules from './expression'
@@ -54,6 +55,7 @@ import symbolRules from './symbol'
 export default [
 
   ...expressionRules,
+  ...commentRules,
   ...keyValuePairRules,
   ...functionRules,
   ...listRules,

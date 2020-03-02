@@ -34,7 +34,7 @@ export default [
     power: 0,
     prefix(parser: Parser) {
       // Unwrap quotes and unescape
-      return ['`', JSON.parse(`"${this.value.slice(1, -1)}"`)]
+      return ['`', JSON.parse(`"${this.value.slice(1, -1).replace(/\\'/g, "'")}"`)]
     }
   },
   {
@@ -46,4 +46,5 @@ export default [
       return ['`', JSON.parse(this.value)]
     }
   },
+
 ]

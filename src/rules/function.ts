@@ -29,15 +29,17 @@ export default [
     match: /^\s*(=>)\s*/, // Must come before `=` or `>`
     name: 'lambda',
     power: 70,
-    prefix(parser: Parser) {},
+    prefix(parser: Parser) {
+      const right = parser.parseExpression(0)
+      return ['lambda', [], right]
+    },
     infix(parser: Parser, left: Expression) {
       // Argument definition
       if (left==null) left = []
       else if (!parser.isArgumentList(left)) {
-
         if (Array.isArray(left)) {
-          // Unwrap single argument as expression (x)
-          if (left[0]==='do') left.shift()
+          // Unwrap zero or single argument as expression (), (x)
+          if (left[0]==='do' || left[0]==='list') left.shift()
           // Unwrap multiple arguments as list
           else if (left.length===1 && Array.isArray(left[0]) && left[0][0]!=='list') {
             left = left[0]

@@ -9,9 +9,7 @@ export default [
     match: /^\s*(\,)\s*/,
     name: 'argument separator',
     power: 5, // Was 5, Stronger than )
-    prefix(parser) {
-      const right = parser.parseExpression(0)
-      parser.scheduleExpression(right)
+    prefix(parser: Parser) {
       return ','
     },
     infix(parser: Parser, left: Expression) {

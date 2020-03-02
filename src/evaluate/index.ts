@@ -97,6 +97,10 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       ast = evaluate(ast[1] as Expression, env)
       continue
 
+    case 'comment':
+      // TODO: DocBlock-style annotations?
+      return
+
     // List given arguments as array: list(1, 2, x) => [1, 2, 3]
     case 'list':
       return ast.slice(1).map(a => evaluate(a, env))
@@ -176,8 +180,14 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
           continue
         }
         if ((typeof key!=='string' && typeof key!=='number')
-          || value[key]==null || !value.hasOwnProperty(key)
+          || value[key]==null
+          // TODO: Environment option for strict properties
+          || key==='__proto__'
+          // || !value.hasOwnProperty(key)
         ) return
+        if (value[key] instanceof Function) {
+          value = value[key].bind(value)
+        } else
         value = value[key]
       }
       return value

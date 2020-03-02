@@ -46,37 +46,39 @@ export class Lexer {
    */
   tokenize(input: string): Token[] {
 
-    const lines = input.split("\n")
     const tokens: Token[] = []
+    let line = input, lineIndex = 0, columnIndex = 0
 
-    for (let i=0, len=lines.length; i < len; i++) {
+    while (line.length) {
 
-      const lineIndex = i
+      let progressed = false
 
-      let line = lines[i]
-      let columnIndex = 0
+      for (const rule of this.rules) {
 
-      while (line.length) {
+        const result = rule.accept(line, lineIndex, columnIndex)
+        if (!result) continue
 
-        let progressed = false
+        const { token, length } = result as RuleAcceptResult
 
-        for (const rule of this.rules) {
-
-          const result = rule.accept(line, lineIndex, columnIndex)
-          if (!result) continue
-
-          const { token, length } = result as RuleAcceptResult
-
-          line = line.slice(length)
+        const removedLines = line.slice(0, length).split('\n')
+        const lastLine = removedLines.pop()
+        lineIndex += removedLines.length
+        if (removedLines.length) {
+          columnIndex = lastLine ? lastLine.length : 0
+        } else {
           columnIndex += length
-          tokens.push(token)
-          progressed = true
-          break
         }
 
-        if (!progressed) {
-          throw new ParseError(`Unable to tokenize at line ${lineIndex+1} column ${columnIndex+1}: ${line}`)
-        }
+        line = line.slice(length)
+
+        // Filter out comments
+        if (token.name!=='comment') tokens.push(token)
+
+        progressed = true
+        break
+      }
+      if (!progressed && (line = line.trim())) {
+        throw new ParseError(`Unable to tokenize at line ${lineIndex+1} column ${columnIndex+1}: ${line}`)
       }
     }
 

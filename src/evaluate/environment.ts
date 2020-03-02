@@ -20,6 +20,13 @@ export class Environment {
         enumerable: false,
         writable: false
       })
+      if (!this.global.root) {
+        Object.defineProperty(this.global, 'root', {
+          value: Environment.root,
+          enumerable: false,
+          writable: false
+        })
+      }
     }
     if (!props) return
     Object.keys(props).forEach(key => {

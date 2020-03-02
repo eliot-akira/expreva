@@ -1,3 +1,4 @@
+import { RuleDefinition } from './rule'
 import { Lexer } from './lexer'
 import { Parser } from './parser'
 import {
@@ -11,31 +12,32 @@ import {
 import { toString, toFormattedString, valueToExpression } from './compile'
 import rules from './rules'
 
-const parser = new Parser(
-  new Lexer(rules)
-)
+export class Expreva {
+  static Parser = Parser
+  static Lexer = Lexer
 
-export interface Expreva {
-  parse: (str: string) => Expression
-  evaluate: (ast: Expression, givenEnv?: RuntimeEnvironment) => ExpressionResult
-  createEnvironment(props?: EnvironmentProps): RuntimeEnvironment
-  toString: (expr: Expression) => string
-  toFormattedString: (expr: Expression) => string
-  valueToExpression: (value: any) => Expression
-}
+  public parser: Parser
 
-const expreva = {
-  parse: (str: string) => parser.parse(str),
-  evaluate: (expr: Expression | string, env?: RuntimeEnvironment): any | never => {
-    return evaluate(
-      typeof expr==='string' ? parser.parse(expr) : expr,
-      env
+  constructor(customRules?: RuleDefinition[]) {
+    this.parser = new Parser(
+      new Lexer(customRules || rules)
     )
-  },
-  createEnvironment,
-  toString,
-  toFormattedString,
-  valueToExpression
+  }
+
+  parse(str: string): Expression {
+    return this.parser.parse(str)
+  }
+
+  evaluate(expr: Expression | string, env?: RuntimeEnvironment): ExpressionResult {
+    return evaluate(typeof expr==='string' ? this.parse(expr) : expr, env)
+  }
+
+  createEnvironment = createEnvironment
+  toString = toString
+  toFormattedString = toFormattedString
+  valueToExpression = valueToExpression
 }
+
+const expreva = new Expreva()
 
 export default expreva

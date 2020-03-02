@@ -3,27 +3,28 @@ import { Expression } from '../evaluate'
 
 export default [
   {
-    match: /^\s*(\(\s*\))\s*/,
-    name: 'empty list',
-    power: 80,
-    prefix() {},
-    infix(parser: Parser, left: Expression[]) {
-      return left!=null ? [left] : ['list']
-    },
-  },
-  {
     match: /^\s*(\()\s*/,
     name: 'open expression',
     power: 80,
     prefix(parser: Parser) {
-      // Called on infix body, for example `=>`
+      let level = ++parser.expressionLevel
 
       let expr = parser.parseExpression(0)
+      if (parser.expressionLevel < level) {
+        return expr
+      }
 
+      let current = parser.current()
       // Parse to right parenthesis or next statement
-      parser.parseExpression(this.power)
+      let next
+      const nexts = []
+      const power = current.value!==')' ? 0 : this.power
+      while((current = parser.current()) && (next = parser.parseExpression(current.value!==')' ? 0 : this.power))!=null ) {
+        nexts.push(next)
+      }
 
-      expr = parser.withNextStatements(this.power, expr)
+      parser.scheduleExpression(...nexts)
+      expr = parser.withNextStatements(this.power, expr as Expression)
 
       // Disambiguate between x and (x)
       if (typeof expr==='string') return ['do', expr]
@@ -31,24 +32,42 @@ export default [
       return expr
     },
     infix(parser: Parser, left: Expression) {
+      let level = ++parser.expressionLevel
 
-      let right = parser.parseExpression(0)
+      // Function call
+      const isFunc = typeof left==='string' || Array.isArray(left)
+      let expr = parser.parseExpression(0)
+      if (parser.expressionLevel < level) {
+        if (isFunc) {
+          return [left, expr]
+        }
+        // Separate statements
+        return ['do', left, expr]
+      }
 
+      let current = parser.current()
       // Parse to right parenthesis or next statement
-      parser.parseExpression(this.power)
+      let next
+      const nexts = []
+      const power = current.value!==')' ? 0 : this.power
+      while((next = parser.parseExpression(power))!=null) {
+        nexts.push(next)
+      }
 
-      right = parser.withNextStatements(this.power, right)
+      parser.scheduleExpression(...nexts)
 
-      if (left==null) return right
-      return [left, right]
+      expr = parser.withNextStatements(this.power, expr as Expression)
+
+      if (left==null) return expr
+      return [left, expr]
     },
   },
   {
     match: /^\s*;*\s*(\))\s*/, // Include trailing end statement ;)
     name: 'close expression',
     power: 0,
-    prefix() {},
-    infix() {},
+    prefix(parser: Parser) { parser.expressionLevel--  },
+    infix(parser: Parser) { parser.expressionLevel-- },
   },
 
   {
@@ -57,7 +76,7 @@ export default [
     power: 0,
     prefix(parser: Parser) {
       const right = parser.parseExpression(0)
-      parser.scheduleExpression(right)
+      parser.scheduleExpression(right as Expression)
     },
     infix(parser: Parser, left: Expression[]) {
       parser.scheduleExpression(';')

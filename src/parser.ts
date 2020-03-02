@@ -18,6 +18,7 @@ export class Parser {
   public cursor: number = 0
   public expressions: Expression = []
   public scheduledExpressions: Expression[] = []
+  public expressionLevel = 0
 
   constructor(lexer: Lexer) {
     this.lexer = lexer
@@ -40,6 +41,7 @@ export class Parser {
     this.cursor = 0
     this.expressions = []
     this.scheduledExpressions = []
+    this.expressionLevel = 0
 
     do {
       const expr = this.parseExpression()
@@ -55,7 +57,8 @@ export class Parser {
     this.expressions =
       this.handleMultipleExpressions(
         this.handleUnexpandedKeywords(this.expressions)
-      ) || []
+      ) as Expression
+    if (this.expressions==null) this.expressions = []
 
     return this.expressions
   }
@@ -123,9 +126,13 @@ export class Parser {
     while (this.hasScheduled()) {
       num++
       const next = this.nextScheduled()
-      this.parseExpression(power)
+
+      const after = this.parseExpression(power)
+      if (after!=null) this.scheduleExpression(after)
+
       if (next==null)  continue
-      if (num > 1) expr.push(next)
+      if (num > 1) (expr as Expression[]).push(next)
+      else if (Array.isArray(expr) && expr[0]==='do') expr.push(next)
       else expr = ['do', expr, next]
     }
 
@@ -140,7 +147,6 @@ export class Parser {
    * - Function application (x,y)->f
    * - Array and object member x.y
    */
-
 
   handleMultipleExpressions(expr: Expression | void): Expression | void {
     if (!Array.isArray(expr)) return expr
@@ -166,7 +172,9 @@ export class Parser {
       )
     : expr[0]==='get' && typeof expr[1]==='number' && typeof expr[2]==='number'
       ? expr[1] + parseFloat(`0.${expr[2]}`)
-      : expr.map(e => this.handleUnexpandedKeywords(e)).filter(e => e!=null)
+      : expr
+          .map(e => this.handleUnexpandedKeywords(e))
+          .filter(e => e!=null)
   }
 
   /**

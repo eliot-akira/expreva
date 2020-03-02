@@ -39,7 +39,7 @@ export class Rule {
    * the matched string and returned.  Also returns the length of the match, which is used by
    * the parser to remove the matched text.
    */
-  accept(str: string, lineIndex: number, columnIndex: number): RuleAcceptResult | void {
+  accept(str: string, lineIndex: number = 0, columnIndex: number = 0): RuleAcceptResult | void {
 
     /**
      * Capture regular expression match and its offset
@@ -49,8 +49,9 @@ export class Rule {
 
     if (matches===null) return
 
-    const value = matches[0]
+    const value = matches[0].trim()
     const offset = matches.index
+    const length = offset + matches[0].length
 
     const tokenDefinition = Object.assign({}, this.definition, {
       value,
@@ -59,7 +60,6 @@ export class Rule {
     })
 
     const token = new Token(tokenDefinition)
-    const length = offset + value.length
 
     return {
       token, length

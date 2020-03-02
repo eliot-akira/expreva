@@ -8,13 +8,11 @@ export default [
     name: 'open list',
     power: 80,
     prefix(parser: Parser) {
-
       // Gather items
 
       let exprs = []
       let expr = parser.parseExpression(0)
       if (expr==null) return ['list']
-
       do {
         if (expr==='listEnd') break
         if (expr===',') continue

@@ -6,7 +6,7 @@
     "build": "tgb build",
     "dev": "concurrently --prefix none --handle-input 'sleep 2 && testra -w build/tests' 'tgb dev'",
     "sandbox": "cd example && tgb dev",
-    "test": "if [ ! -d \"build\" ]; then yarn build; fi; testra build/tests",
+    "test": "yarn build && testra build/tests",
     "type": "tsc --declaration --emitDeclarationOnly",
     "deploy": "./deploy"
   },
