@@ -1,23 +1,16 @@
 import lex from './lex'
-import parseTokens from './parse'
-import util from 'util'
+import parseTokensToSyntaxTree from './parse'
 
-const inspect = obj => util.inspect(obj, false, null, true)
 
-import { evaluate as evaluateTree } from './evaluate'
+import { evaluate as evaluateSyntaxTree } from './evaluate'
 
-export const parse = source => {
-console.log('LEX', source)
+export const parse = (source: string) => {
+
   const tokens = lex( source )
-console.log('LEXED', tokens.map(t => t.match).join(' '))
+
   try {
-    const tokenTree = parseTokens( tokens )
-    console.log('PARSED', `${tokenTree}`)
 
-    const ast = compile(tokenTree)
-    console.log('COMPILED', inspect(ast))
-
-    return ast
+    return parseTokensToSyntaxTree( tokens )
 
   } catch(e) {
     if (!e.lexer) throw e
@@ -26,57 +19,11 @@ console.log('LEXED', tokens.map(t => t.match).join(' '))
   }
 }
 
-export function evaluate(source) {
-  if (Array.isArray(source)) return evaluateTree(source)
-  return evaluateTree(parse(source))
-}
-
-function compile(ast) {
-
-  if (ast==null) return []
-  if (Array.isArray(ast)) return ast.map(compile)
-
-  // Expressions can be reduced to a single expression
-  if (ast.expressions!=null) {
-    if (!ast.expressions[1]) return compile(ast.expressions[0])
-    return ast.expressions.map(compile)
-  }
-
-  // Arguments are always an array
-  if (ast.args!=null) {
-    if (ast.value==null) {
-      return ast.args.map(compile)
-    }
-    return [
-      ast.value,
-      ...ast.args.map(compile),
-    ]
-  }
-
-  // Nullary
-  if (ast.left==null) {
-    if (ast.right!=null) {
-      if (ast.value==null) return compile(ast.right)
-      return [ast.value, compile(ast.right)]
-    }
-    return ast.value
-  }
-
-  // Prefix
-  if (ast.right==null) {
-    if (ast.value==null) return compile(ast.left)
-    return [
-      ast.value,
-      compile(ast.left),
-    ]
-  }
-
-  // Infix
-  return [
-    ast.value,
-    compile(ast.left),
-    compile(ast.right)
-  ]
+export function evaluate(source, env) {
+  return evaluateSyntaxTree(
+    Array.isArray(source) ? source : parse(source),
+    env
+  )
 }
 
 export function toString(nodes) {
@@ -84,4 +31,8 @@ export function toString(nodes) {
   return `(${nodes.map(node => toString(node)).join(' ')})`
 }
 
+
+export { toString as toFormattedString }
+
 export { Token } from './Parser'
+export { createEnvironment } from './evaluate'

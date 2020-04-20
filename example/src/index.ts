@@ -1,4 +1,4 @@
-import expreva from '../../src'
+import * as expreva from '../../src'
 
 var $ = document.querySelector.bind(document)
 var $$ = function(sel) {
@@ -45,7 +45,10 @@ function setText(el, value) {
 }
 
 function renderValue(val) {
-  return expreva.toFormattedString(expreva.valueToExpression(val))
+  return expreva.toFormattedString(
+    val
+    // expreva.valueToExpression(val)
+  )
 }
 
 function renderInstructions(instr) {

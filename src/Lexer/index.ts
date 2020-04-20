@@ -1,4 +1,6 @@
-// Based on https://github.com/jrop/perplex
+/**
+ * Lexer based on https://github.com/jrop/perplex
+ */
 
 import LexerState from './lexer-state'
 import Token, {EOF} from './token'

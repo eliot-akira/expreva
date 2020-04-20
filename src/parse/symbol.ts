@@ -5,6 +5,48 @@ export default function(parser) {
 
   parser
 
+  // Symbols
+
+  .nullary('NUMBER', (token) => ({
+    value: Number(token.match),
+    toString() { return this.value },
+  }))
+
+  .nullary('IDENTIFIER', (token) => ({
+    value: token.match,
+    toString() { return this.value },
+  }))
+
+  // String
+
+  .nullary('STRING_SINGLE', (token) => ({
+    value: [
+      'expr',
+      JSON.parse(`"${token.match.slice(1, -1).replace(/\\'/g, "'")}"`)
+    ],
+    toString() { return token.match },
+  }))
+
+  .nullary('STRING_DOUBLE', (token) => ({
+    value: [
+      'expr',
+      JSON.parse(token.match)
+    ],
+    toString() { return token.match },
+  }))
+
+  // Comment - IDEA: Hang documentation on variables
+
+  .nullary('COMMENT', (token) => ({
+    toString() { return '' },
+    comment: token.match
+  }))
+
+  .nullary('COMMENT_BLOCK', (token) => ({
+    toString() { return '' },
+    comment: token.match
+  }))
+
   // New lines
 
   .register('NEWLINE', {
@@ -34,30 +76,6 @@ export default function(parser) {
 //   value: token.match,
 //   toString() { return this.value },
 // }))
-
-  // Symbols
-
-  .nullary('NUMBER', (token) => ({
-    value: Number(token.match),
-    toString() { return this.value },
-  }))
-
-  .nullary('IDENTIFIER', (token) => ({
-    value: token.match,
-    toString() { return this.value },
-  }))
-
-  // String
-
-  .nullary('STRING_SINGLE', (token) => ({
-    value: ['expr', token.match],
-    toString() { return token.match },
-  }))
-
-  .nullary('STRING_DOUBLE', (token) => ({
-    value: ['expr', token.match],
-    toString() { return token.match },
-  }))
 
   return parser
 }

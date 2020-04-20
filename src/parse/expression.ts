@@ -6,31 +6,6 @@ export default function(parser) {
 
   parser
 
-  // Statement
-
-  .infix(';', Precedence.STATEMENT, Parser.RIGHT_ASSOC, (token, left, right) => {
-
-    if (left.value==='do') {
-
-      if (right.value==='do') {
-        left.args.push(...right.args)
-      } else {
-        left.args.push(right)
-      }
-
-      return left
-    }
-
-    if (right.value==='do') {
-      return createDoExpression([left, ...right.args])
-    }
-
-    return createDoExpression([left, right])
-  })
-
-  // Ignore last ";"
-  .postfix(';', Precedence.POSTFIX, (token, left) => left)
-
   // Expression
 
   .register('(', {
@@ -38,7 +13,6 @@ export default function(parser) {
 
       let expressions = []
 
-console.log('( PRE -->')
       // There may be no arguments at all.
       if (!parser.match(')')) {
 
@@ -50,6 +24,8 @@ console.log('( PRE -->')
             expressions.push(parser.parse(0))
           } while (parser.match(','))
 
+          // parser.consume(')') // Single expression only
+
           // Keep consuming expressions
           i++
         } while (!parser.match(')') && parser.peek(0))
@@ -59,27 +35,12 @@ console.log('( PRE -->')
             createDoExpression(expressions)
           ]
         }
-
-        // parser.consume(')')
       }
-console.log('( PRE <--', expressions)
 
-return {
-        // value: 'apply', //token.match,
-        toString() {
-          return `(${expressions.join(';')})`
-        },
+      return {
+        toString() { return `(${expressions.join(';')})` },
         expressions,
       }
-
-      // const expr = parser.parse(0)
-      // parser.consume(')')
-
-      // return {
-      //   // value: token.match,
-      //   toString() { return ''+expr },
-      //   expressions: [expr]
-      // }
     }
   }, Parser.PREFIX)
 
@@ -98,10 +59,7 @@ return {
       }
 
       return {
-        // value: 'apply', //token.match,
-        toString() {
-          return `${left}(${args.join(',')})`
-        },
+        toString() { return `${left}(${args.join(',')})` },
         args: [left, ...args],
       }
     }

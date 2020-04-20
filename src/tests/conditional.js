@@ -11,19 +11,19 @@ test('conditional operators', it => {
 })
 
 
-test('if', it => {
-  const is = eva(it)
+// test('if', it => {
+//   const is = eva(it)
 
-  is(`if true then 'YES' else 'NO'`, 'YES')
-  is(`if false then 'YES' else 'NO'`, 'NO')
-  is(`if true and true then 'YES' else 'NO'`, 'YES')
-  is(`if true and false then 'YES' else 'NO'`, 'NO')
-  is(`if false and true then 'YES' else 'NO'`, 'NO')
+//   is(`if true then 'YES' else 'NO'`, 'YES')
+//   is(`if false then 'YES' else 'NO'`, 'NO')
+//   is(`if true and true then 'YES' else 'NO'`, 'YES')
+//   is(`if true and false then 'YES' else 'NO'`, 'NO')
+//   is(`if false and true then 'YES' else 'NO'`, 'NO')
 
-  is(`if 3->(x=>x*x)==9 then 'YES' else 'NO'`, 'YES')
-  is(`if 3->(x=>x*x)==10 then 'YES' else 'NO'`, 'NO')
-  is(`if 3->(x=>x*x)==9 then if true then 'YES' else 'NO'`, 'YES')
-  is(`if 3->(x=>x*x)==9 then if false then 'YES' else 'NO'`, 'NO')
+//   is(`if 3->(x=>x*x)==9 then 'YES' else 'NO'`, 'YES')
+//   is(`if 3->(x=>x*x)==10 then 'YES' else 'NO'`, 'NO')
+//   is(`if 3->(x=>x*x)==9 then if true then 'YES' else 'NO'`, 'YES')
+//   is(`if 3->(x=>x*x)==9 then if false then 'YES' else 'NO'`, 'NO')
 
-  is(`if not 1 > 2 then 'YES' else 'NO'`, 'YES')
-})
+//   is(`if not 1 > 2 then 'YES' else 'NO'`, 'YES')
+// })

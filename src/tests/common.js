@@ -1,3 +1,4 @@
+import util from 'util'
 import * as expreva from '../index'
 
 // Assertion helper
@@ -20,4 +21,6 @@ const parse = expreva.parse.bind(expreva)
 const evaluate = expreva.evaluate.bind(expreva)
 const toString = expreva.toString.bind(expreva)
 
-export { eva, parse, evaluate, toString }
+const inspect = obj => util.inspect(obj, false, null, true)
+
+export { eva, parse, evaluate, toString, inspect }

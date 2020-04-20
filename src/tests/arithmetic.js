@@ -13,7 +13,8 @@ test('arithmetic with minus/negative', it => {
   const is = eva(it)
 
   is('1 - 1', 0)
-  is('1;-1', -1)
   is('1-1', 0)
+
+  is('1;-1', -1)
   is('1;\n-1', -1)
 })

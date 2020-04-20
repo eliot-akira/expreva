@@ -10,11 +10,22 @@ export default function(parser) {
   .register('?', {
     precedence: Precedence.CONDITIONAL,
     parse(parser, token, left) {
-      const thenArm = parser.parse(0)
-      parser.consume(':')
-      const elseArm = parser.parse(this.precedence - 1)
 
-      return { toString() { return `(${left}?${thenArm}:${elseArm})` }, left, thenArm, elseArm }
+      const trueBranch = parser.parse(0)
+
+      parser.consume(':')
+
+      const elseBranch = parser.parse(this.precedence - 1)
+
+      const ifNode = {
+        value: 'if',
+        toString() { return this.value },
+      }
+
+      return {
+       toString() { return `(${left} ? ${trueBranch} : ${elseBranch})` },
+       args: [ifNode, left, trueBranch, elseBranch]
+      }
     }
   }, Parser.XFIX)
 

@@ -3,60 +3,52 @@ import { Precedence } from './constants'
 
 export default function(parser) {
 
-  parser
+  // Positive and negative  sign
+
+  for (const operator of [ '+', '-' ]) {
+    parser.prefix(operator, Precedence.PREFIX, (token, right) => ({
+      value: token.match,
+      toString() { return `(${operator}${right})` },
+      left: { value: 0 },
+      right
+    }))
+  }
 
   // Arithmetic
 
-  .prefix('+', Precedence.PREFIX, (token, right) => ({
-    value: token.match,
-    toString() { return `(+${right})` },
-    left: { value: 0 },
-    right
-  }))
+  for (const operator of [ '~', '!' ]) {
+    parser.prefix(operator, Precedence.PREFIX, (token, right) => ({
+      value: token.match,
+      toString() { return `(${operator}${right})` },
+      right
+    }))
+  }
 
-  .prefix('-', Precedence.PREFIX, (token, right) => ({
-    value: token.match,
-    toString() { return `(-${right})` },
-    left: { value: 0 },
-    right
-  }))
+  for (const operator of [ '+', '-' ]) {
+    parser.infix(operator, Precedence.SUM, Parser.LEFT_ASSOC, (token, left, right) => ({
+      value: token.match,
+      toString() { return `(${left} ${operator} ${right})` },
+      left,
+      right
+    }))
+  }
 
-  .prefix('~', Precedence.PREFIX, (token, right) => ({
-    value: token.match,
-    toString() { return `(~${right})` }, right
-  }))
+  for (const operator of [ '*', '/' ]) {
+    parser.infix(operator, Precedence.PRODUCT, Parser.LEFT_ASSOC, (token, left, right) => ({
+      value: token.match,
+      toString() { return `(${left} ${operator} ${right})` },
+      left,
+      right
+    }))
+  }
 
-  .prefix('!', Precedence.PREFIX, (token, right) => ({
-    value: token.match,
-    toString() { return `(!${right})` }, right
-  }))
+  parser
 
   .postfix('!', Precedence.POSTFIX, (token, left) => ({
     value: token.match,
     toString() { return `(${left}!)` }, left
   }))
 
-  .infix('+', Precedence.SUM, Parser.LEFT_ASSOC, (token, left, right) => ({
-    value: token.match,
-    toString() { return `(${left}+${right})` }, left, right
-  }))
-
-  .infix('-', Precedence.SUM, Parser.LEFT_ASSOC, (token, left, right) => ({
-    value: token.match,
-    toString() { return `(${left}-${right})` },
-    left,
-    right
-  }))
-
-  .infix('*', Precedence.PRODUCT, Parser.LEFT_ASSOC, (token, left, right) => ({
-    value: token.match,
-    toString() { return `(${left}*${right})` }, left, right
-  }))
-
-  .infix('/', Precedence.PRODUCT, Parser.LEFT_ASSOC, (token, left, right) => ({
-    value: token.match,
-    toString() { return `(${left}/${right})` }, left, right
-  }))
 
   .infix('^', Precedence.EXPONENT, Parser.RIGHT_ASSOC, (token, left, right) => ({
     value: token.match,

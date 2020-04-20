@@ -1,4 +1,6 @@
-// Based on https://github.com/gliese1337/PrattParser.js
+/**
+ * Parser based on https://github.com/gliese1337/PrattParser.js
+ */
 
 import {
   Token,
@@ -9,7 +11,7 @@ import {
   PrefixUnaryParselet,
   PostfixUnaryParselet,
   BinaryParselet,
-  ExprParser,
+  ExpressionParserInterface,
 } from './parselets';
 
 export {
@@ -21,10 +23,10 @@ export {
   PrefixUnaryParselet,
   PostfixUnaryParselet,
   BinaryParselet,
-  ExprParser,
+  ExpressionParserInterface,
 }
 
-class XParser<N, T extends Token> implements ExprParser<N, T> {
+class ExpressionParser<N, T extends Token> implements ExpressionParserInterface<N, T> {
   private g: Iterator<T>;
   private q: T[] = [];
 
@@ -87,9 +89,11 @@ class XParser<N, T extends Token> implements ExprParser<N, T> {
     const { interpreter: interp } = this;
     if (interp === null) {
       while(precedence < this.precedence) {
+
         const token = this.consume();
         const xfix = this.xfixParselets.get(token.type);
         if (!xfix) throw token;
+
         left = xfix.parse(this, token, left);
       }
     } else {
@@ -167,7 +171,7 @@ export class Parser<N, T extends Token> {
   public parse(tokens: Iterable<T>) {
 
     const expressions = []
-    const parser = new XParser(this.prefixParselets, this.xfixParselets, null, tokens)
+    const parser = new ExpressionParser(this.prefixParselets, this.xfixParselets, null, tokens)
     let expression
 
     while (expression = parser.parse(0)) {
@@ -179,6 +183,6 @@ export class Parser<N, T extends Token> {
   }
 
   public interpret(tokens: Iterable<T>) {
-    return (new XParser(this.prefixParselets, this.xfixParselets, this.interpreter, tokens)).parse(0);
+    return (new ExpressionParser(this.prefixParselets, this.xfixParselets, this.interpreter, tokens)).parse(0);
   }
 }

@@ -3,14 +3,24 @@ import { Precedence } from './constants'
 
 export default function(parser) {
 
-  parser
+  for (const operator of [
+    '>',
+    '>=',
+    '<',
+    '<=',
+    '==',
+    '!=',
+    '&&',
+    '||',
+  ]) {
+    parser.infix(operator, Precedence.CONDITIONAL, Parser.LEFT_ASSOC, (token, left, right) => ({
+      value: token.match,
+      toString() { return `(${left} ${operator} ${right})` },
+      left,
+      right
+    }))
+  }
 
-  .infix('>', Precedence.CONDITIONAL, Parser.LEFT_ASSOC, (token, left, right) => ({
-    value: token.match,
-    toString() { return `(${left}>${right})` },
-    left,
-    right
-  }))
 
   return parser
 }
