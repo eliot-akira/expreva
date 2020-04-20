@@ -1,10 +1,10 @@
-const expreva = require('../../build').default
+import * as expreva from '../index'
 
 // Assertion helper
 const eva = it => (k, v) => {
   let r
   try {
-    r = evaluate(k)
+    r = expreva.evaluate(k)
   } catch(e) {
     r = e.message
   }
@@ -20,4 +20,4 @@ const parse = expreva.parse.bind(expreva)
 const evaluate = expreva.evaluate.bind(expreva)
 const toString = expreva.toString.bind(expreva)
 
-module.exports = { eva, parse, evaluate, toString }
+export { eva, parse, evaluate, toString }
