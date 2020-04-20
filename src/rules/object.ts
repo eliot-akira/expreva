@@ -1,13 +1,14 @@
 import { Parser } from '../parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 /** Quote string, otherwise pass through */
 const quoteString = (v: Expression) => typeof v==='string' ? ['`', v] : v
 
 export default [
   {
-    match: /^\s*(\{)\s*/,
-    name: 'open object',
+    match: /^(\{)/,
+    type: TokenType.openObject,
     power: 80,
     prefix(parser: Parser) {
 
@@ -55,8 +56,8 @@ export default [
     },
   },
   {
-    match: /^\s*(\})\s*/,
-    name: 'close object',
+    match: /^(\})/,
+    type: TokenType.closeObject,
     power: 0,
     prefix(parser: Parser) {
       return 'objEnd'
@@ -65,8 +66,8 @@ export default [
   },
 
   {
-    match: /^\s*(\.)\s*/,
-    name: 'member',
+    match: /^(\.)/,
+    type: TokenType.member,
     power: 80,
     prefix(parser: Parser) {
       const right = parser.parseExpression(0)

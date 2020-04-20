@@ -1,5 +1,6 @@
 import { Parser } from '../Parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 export default [
 
@@ -7,8 +8,8 @@ export default [
 
   // Reserved words must come before symbol
   {
-    match: /^\s*(if)\s*/,
-    name: 'if',
+    match: /^(if)/,
+    type: TokenType.unaryOperator,
     power: 20,
     prefix(parser: Parser) {
       const condition = parser.parseExpression(this.power)
@@ -25,8 +26,8 @@ export default [
     },
   },
   {
-    match: /^\s*(or)\s*/,
-    name: 'or',
+    match: /^(or)/,
+    type: TokenType.binaryOperator,
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -35,8 +36,8 @@ export default [
     },
   },
   {
-    match: /^\s*(and)\s*/,
-    name: 'and',
+    match: /^(and)/,
+    type: TokenType.binaryOperator,
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -45,8 +46,8 @@ export default [
     },
   },
   {
-    match: /^\s*(not)\s*/,
-    name: 'not',
+    match: /^(not)/,
+    type: TokenType.unaryOperator,
     power: 70,
     prefix(parser: Parser) {
       return ['!', parser.parseExpression(0)]
@@ -55,8 +56,8 @@ export default [
   },
 
   {
-    match: /^\s*(\?)\s*/,
-    name: '?',
+    match: /^(\?)/,
+    type: TokenType.binaryOperator, // Tertiary
     power: 20,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -68,8 +69,8 @@ export default [
   },
 
   {
-    match: /^\s*(\|\|)\s*/,
-    name: '||',
+    match: /^(\|\|)/,
+    type: TokenType.binaryOperator,
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -79,8 +80,8 @@ export default [
   },
 
   {
-    match: /^\s*(&&)\s*/,
-    name: '&&',
+    match: /^(&&)/,
+    type: TokenType.binaryOperator,
     power: 30,
     prefix() {},
     infix(parser: Parser, left: Expression) {

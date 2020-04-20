@@ -1,11 +1,12 @@
 import { Parser } from '../Parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 export default [
 
   {
-    match: /^\s*(\d+)\s*/, // (\d+)?\.? - Let member operator "." process first
-    name: 'number',
+    match: /^(\d+)/, // (\d+)?\.? - Let member operator "." process first
+    type: TokenType.number,
     power: 0,
     prefix(parser: Parser) {
       return parseFloat(this.value)
@@ -14,8 +15,8 @@ export default [
   },
 
   {
-    match: /^\s*([a-zA-Z0-9_]+)\s*/,
-    name: 'symbol',
+    match: /^([a-zA-Z0-9_]+)/,
+    type: TokenType.symbol,
     power: 0,
     prefix(parser: Parser) {
       return this.value.trim()
@@ -29,8 +30,8 @@ export default [
    * @see https://stackoverflow.com/questions/249791/regex-for-quoted-string-with-escaping-quotes#answer-10786066
    */
   {
-    match: /^\s*\'([^\'\\]*(\\.[^\'\\]*)*)\'/,
-    name: 'single-quoted string',
+    match: /^\'([^\'\\]*(\\.[^\'\\]*)*)\'/,
+    type: TokenType.string,
     power: 0,
     prefix(parser: Parser) {
       // Unwrap quotes and unescape
@@ -38,8 +39,8 @@ export default [
     }
   },
   {
-    match: /^\s*"([^"\\]*(\\.[^"\\]*)*)"/,
-    name: 'double-quoted string',
+    match: /^"([^"\\]*(\\.[^"\\]*)*)"/,
+    type: TokenType.string,
     power: 0,
     prefix(parser: Parser) {
       // Unwrap quotes and unescape

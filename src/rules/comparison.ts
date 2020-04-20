@@ -1,12 +1,13 @@
 import { Parser } from '../Parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 export default [
 
   // Comparison
   {
-    match: /^\s*(==)\s*/, // Must come before `=`
-    name: '==',
+    match: /^(==)/, // Must come before `=`
+    type: TokenType.binaryOperator,
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -15,8 +16,8 @@ export default [
     },
   },
   {
-    match: /^\s*(\!=)\s*/,
-    name: '!=',
+    match: /^(\!=)/,
+    type: TokenType.binaryOperator,
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -26,8 +27,8 @@ export default [
   },
 
   {
-    match: /^\s*(\!)\s*/,
-    name: '!',
+    match: /^(\!)/,
+    type: TokenType.unaryOperator,
     power: 70,
     prefix(parser: Parser) {
       return ['!', parser.parseExpression(0)]
@@ -36,8 +37,8 @@ export default [
   },
 
   {
-    match: /^\s*(<=)\s*/,
-    name: '<=',
+    match: /^(<=)/,
+    type: TokenType.binaryOperator,
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -46,8 +47,8 @@ export default [
     },
   },
   {
-    match: /^\s*(<)\s*/,
-    name: '<',
+    match: /^(<)/,
+    type: TokenType.binaryOperator,
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -56,8 +57,8 @@ export default [
     },
   },
   {
-    match: /^\s*(>=)\s*/,
-    name: '>=',
+    match: /^(>=)/,
+    type: TokenType.binaryOperator,
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -66,8 +67,8 @@ export default [
     },
   },
   {
-    match: /^\s*(>)\s*/,
-    name: '>',
+    match: /^(>)/,
+    type: TokenType.binaryOperator,
     power: 40,
     prefix() {},
     infix(parser: Parser, left: Expression) {

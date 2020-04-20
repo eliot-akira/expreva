@@ -8,6 +8,8 @@ import expressionRules from './expression'
 import functionRules from './function'
 import keyValuePairRules from './keyValuePair'
 import objectRules from './object'
+import spaceRules from './space'
+import statementRules from './statement'
 import symbolRules from './symbol'
 
 /**
@@ -54,7 +56,10 @@ import symbolRules from './symbol'
 
 export default [
 
+  ...spaceRules,
   ...expressionRules,
+  ...statementRules,
+
   ...commentRules,
   ...keyValuePairRules,
   ...functionRules,

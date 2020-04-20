@@ -1,6 +1,6 @@
-import { RuleDefinition } from './rule'
-import { Lexer } from './lexer'
-import { Parser } from './parser'
+import { RuleDefinition } from './Rule'
+import { Lexer } from './Lexer'
+import { Parser } from './Parser'
 import {
   evaluate,
   Expression,

@@ -1,5 +1,6 @@
-import { Parser, ParseError } from './parser'
+import { Parser, ParseError } from './Parser'
 import { Expression } from './evaluate'
+import { TokenType } from './TokenType'
 
 /**
  * A token defines a lexical unit in the parse tree, such as number or operator.
@@ -37,12 +38,12 @@ import { Expression } from './evaluate'
 
 export class Token {
 
-  public name = '(token)'
+  public type = TokenType.undefined
   public value = ''
   public power = 0
 
-  public line: number
-  public column: number
+  public line: number = 0
+  public column: number = 0
 
   constructor(definition = {}) {
     Object.keys(definition).forEach(key => {
@@ -77,11 +78,12 @@ export class Token {
 
 /**
  * A token signalling the end of the input.
- */
+ *
 export class EndToken extends Token {
-  public name = '(end)'
+  public type = TokenType.undefined
   public power = 0
 
   prefix() {}
   infix() {}
 }
+*/

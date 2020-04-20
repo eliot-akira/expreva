@@ -1,6 +1,6 @@
-import { Rule, RuleDefinition, RuleAcceptResult } from './rule'
-import { Token, EndToken } from './token'
-import { ParseError } from './parser'
+import { Rule, RuleDefinition, RuleAcceptResult } from './Rule'
+import { Token, EndToken } from './Token'
+import { ParseError } from './Parser'
 
 /**
  * The lexer applies a set of rules to a given string, matches regular expressions
@@ -60,6 +60,10 @@ export class Lexer {
 
         const { token, length } = result as RuleAcceptResult
 
+        if (!length) continue // In case token match is empty
+
+        // Calculate line and column
+
         const removedLines = line.slice(0, length).split('\n')
         const lastLine = removedLines.pop()
         lineIndex += removedLines.length
@@ -69,20 +73,19 @@ export class Lexer {
           columnIndex += length
         }
 
+        tokens.push(token)
+
         line = line.slice(length)
-
-        // Filter out comments
-        if (token.name!=='comment') tokens.push(token)
-
         progressed = true
         break
       }
+
       if (!progressed && (line = line.trim())) {
         throw new ParseError(`Unable to tokenize at line ${lineIndex+1} column ${columnIndex+1}: ${line}`)
       }
     }
 
-    tokens.push(new EndToken)
+    // tokens.push(new EndToken)
     return tokens
   }
 }

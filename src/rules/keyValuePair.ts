@@ -1,11 +1,12 @@
 import { Parser } from '../Parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 export default [
   // Key-value pair ":" (key: value) and conditional ":" (cond ? true : false)
   {
-    match: /^\s*(:)\s*/,
-    name: ':',
+    match: /^(:)/,
+    type: TokenType.colonSeparator,
     power: 0,
     prefix(parser: Parser) {
       return ':'

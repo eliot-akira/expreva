@@ -1,4 +1,4 @@
-import { Token } from './token'
+import { Token } from './Token'
 
 /**
  * A rule represents an instruction for the lexer.
@@ -49,7 +49,7 @@ export class Rule {
 
     if (matches===null) return
 
-    const value = matches[0].trim()
+    const value = matches[0]
     const offset = matches.index
     const length = offset + matches[0].length
 

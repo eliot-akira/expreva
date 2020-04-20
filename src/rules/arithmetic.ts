@@ -1,11 +1,12 @@
 import { Parser } from '../Parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 export default [
 
   {
-    match: /^\s*(=)\s*/,
-    name: 'def',
+    match: /^(=)/,
+    type: TokenType.assignment,
     power: 10,
     prefix() {},
     infix(parser: Parser, left: Expression) {
@@ -15,8 +16,8 @@ export default [
   },
 
   {
-    match: /^\s*([+])\s*/,
-    name: '+',
+    match: /^(\+)/,
+    type: TokenType.binaryOperator,
     power: 50,
     prefix(parser: Parser) {
       return parser.parseExpression(70) // Positive sign binds stronger than / or *
@@ -27,8 +28,8 @@ export default [
     },
   },
   {
-    match: /^\s*(-)\s*/,
-    name: '-',
+    match: /^(-)/,
+    type: TokenType.binaryOperator,
     power: 50,
     prefix(parser: Parser) {
       return -parser.parseExpression(70) // Negative sign binds stronger than / or *
@@ -39,8 +40,8 @@ export default [
     },
   },
   {
-    match: /^\s*(\*)\s*/,
-    name: '*',
+    match: /^(\*)/,
+    type: TokenType.binaryOperator,
     power: 60,
     infix(parser: Parser, left: Expression) {
       const right = parser.parseExpression(this.power)
@@ -48,8 +49,8 @@ export default [
     },
   },
   {
-    match: /^\s*(\/)\s*/,
-    name: '/',
+    match: /^(\/)/,
+    type: TokenType.binaryOperator,
     power: 60,
     infix(parser: Parser, left: Expression) {
       const right = parser.parseExpression(this.power)

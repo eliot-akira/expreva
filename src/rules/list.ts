@@ -1,16 +1,39 @@
 import { Parser } from '../Parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 export default [
   // Array
   {
-    match: /^\s*(\[)\s*/,
-    name: 'open list',
-    power: 80,
+    match: /^(\[)/,
+    type: TokenType.openList,
+    power: 0,
     prefix(parser: Parser) {
-      // Gather items
 
-      let exprs = []
+      console.log('[ -->')
+
+      const exprs = []
+      let expr, token
+
+      do {
+
+      while ((expr = parser.parseExpression(0)) != null) {
+        exprs.push(expr)
+        // console.log(',')
+      }
+
+      token = parser.current()
+      // console.log('Next token', token.type, token && token.type!==TokenType.closeList)
+
+    } while (token && token.type!==TokenType.closeList)
+
+      exprs.unshift('list')
+
+      console.log('] <--', exprs)
+
+      return exprs
+
+/*      let exprs = []
       let expr = parser.parseExpression(0)
       if (expr==null) return ['list']
       do {
@@ -34,16 +57,21 @@ export default [
       } while ((expr = parser.parseExpression(this.power)) != null)
 
       return ['list', ...exprs]
+*/
     },
     infix(parser: Parser, left: Expression) {},
   },
   {
-    match: /^\s*(\])\s*/,
-    name: 'close list',
+    match: /^(\])/,
+    type: TokenType.closeList,
     power: 0,
     prefix(parser) {
-      return 'listEnd'
+      console.log('] pre')
+      // return 'listEnd'
     },
-    infix(parser: Parser, left: Expression[]) {},
+    infix(parser: Parser, left: Expression[]) {
+      console.log('] in')
+      return left
+    },
   },
 ]

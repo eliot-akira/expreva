@@ -1,12 +1,41 @@
 import { Parser } from '../Parser'
 import { Expression } from '../evaluate'
+import { TokenType } from '../TokenType'
 
 export default [
+
   {
-    match: /^\s*(\()\s*/,
-    name: 'open expression',
+    match: /^(\()/,
+    type: TokenType.openExpression,
     power: 80,
     prefix(parser: Parser) {
+
+      console.log('( -->')
+
+      const exprs = []
+      let expr, token = parser.current()
+
+      while (token && token.type!==TokenType.closeExpression) {
+
+        while ((expr = parser.parseExpression(this.power)) != null) {
+          exprs.push(expr)
+          // console.log(',')
+        }
+
+        token = parser.current()
+        // console.log('Next token', token.type, token && token.type!==TokenType.closeList)
+      }
+
+      const len = exprs.length
+
+      if (!len) return
+      if (len===1) return exprs[0]
+      // if (len > 1) exprs.unshift('do')
+
+      console.log(') <--', exprs)
+      return exprs
+
+      /*
       let level = ++parser.expressionLevel
 
       let expr = parser.parseExpression(0)
@@ -30,8 +59,11 @@ export default [
       if (typeof expr==='string') return ['do', expr]
 
       return expr
+*/
     },
     infix(parser: Parser, left: Expression) {
+      return parser.parseExpression(0)
+/*
       let level = ++parser.expressionLevel
 
       // Function call
@@ -46,7 +78,9 @@ export default [
       }
 
       let current = parser.current()
-      // Parse to right parenthesis or next statement
+      if (current) {
+
+        // Parse to right parenthesis or next statement
       let next
       const nexts = []
       const power = current.value!==')' ? 0 : this.power
@@ -56,31 +90,21 @@ export default [
 
       parser.scheduleExpression(...nexts)
 
+    }
+
       expr = parser.withNextStatements(this.power, expr as Expression)
 
       if (left==null) return expr
       return [left, expr]
+*/
     },
   },
   {
-    match: /^\s*;*\s*(\))\s*/, // Include trailing end statement ;)
-    name: 'close expression',
+    match: /^(\))/,
+    type: TokenType.closeExpression,
     power: 0,
-    prefix(parser: Parser) { parser.expressionLevel--  },
-    infix(parser: Parser) { parser.expressionLevel-- },
+    prefix(parser: Parser) {},
+    infix(parser: Parser) {},
   },
 
-  {
-    match: /^\s*(;+)\s*/,
-    name: 'end statement',
-    power: 0,
-    prefix(parser: Parser) {
-      const right = parser.parseExpression(0)
-      parser.scheduleExpression(right as Expression)
-    },
-    infix(parser: Parser, left: Expression[]) {
-      parser.scheduleExpression(';')
-      return left
-    },
-  },
 ]

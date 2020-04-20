@@ -13,6 +13,7 @@ export const toString = (
     })`
 
 let valuesSeen = new Map
+
 export const valueToExpression = (
   value: any,
   inner = false
@@ -21,12 +22,11 @@ export const valueToExpression = (
   if (!inner) valuesSeen.clear()
   else if (valuesSeen.get(value)) {
     return '..'
-  } else {
-    valuesSeen.set(value, true)
   }
 
   if (value==null) return inner ? 'nil' : ''
   if (typeof value==='object') {
+    valuesSeen.set(value, true)
     if (Array.isArray(value)) {
       return ['list', ...value.map(e => valueToExpression(e, true))]
     }

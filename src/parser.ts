@@ -1,6 +1,26 @@
-import { Token } from './token'
-import { Lexer } from './lexer'
+import { Token } from './Token'
+import { TokenType } from './TokenType'
+import { Lexer } from './Lexer'
 import { Expression } from './evaluate'
+import expressionRules from './rules/expression'
+import argumentRules from './rules/argument'
+import statementRules from './rules/statement'
+
+function createOpenExpression() {
+  return new Token({ ...expressionRules[0], value: '(' })
+}
+
+function createCloseExpression() {
+  return new Token({ ...expressionRules[1], value: ')' })
+}
+
+function createEndStatement() {
+  return new Token({ ...statementRules[0], value: ';' })
+}
+
+function createArgumentSeparator() {
+  return new Token({ ...argumentRules[0], value: ',' })
+}
 
 /**
  * Parse a given source string into a syntax tree of expressions.
@@ -37,30 +57,138 @@ export class Parser {
    */
   parse(input: string = ''): Expression {
 
+    this.cursor = 0
+
     this.tokens = this.lexer.tokenize(input)
+    this.tokens = this.organizeTokens()
+
     this.cursor = 0
     this.expressions = []
     this.scheduledExpressions = []
     this.expressionLevel = 0
 
+    let expressionsCount = 0
+
     do {
       const expr = this.parseExpression()
       if (expr==null || (Array.isArray(expr) && !expr.length)) continue
 
+      expressionsCount++
       this.expressions.push(expr as Expression)
-
+console.log('--')
     } while (this.current())
 
-    this.expressions.push(...this.scheduledExpressions)
-    this.scheduledExpressions = []
+console.log('--', this.expressions)
 
-    this.expressions =
-      this.handleMultipleExpressions(
-        this.handleUnexpandedKeywords(this.expressions)
-      ) as Expression
-    if (this.expressions==null) this.expressions = []
+    // If multiple expressions, wrap as single "do"
+
+    if (!expressionsCount) return this.expressions
+    if (expressionsCount===1) return this.expressions[0]
+
+    this.expressions.unshift('do')
+    return this.expressions
+
+    // this.expressions.push(...this.scheduledExpressions)
+    // this.scheduledExpressions = []
+
+    // this.expressions =
+    //   this.handleMultipleExpressions(
+    //     this.handleUnexpandedKeywords(this.expressions)
+    //   ) as Expression
+
+    // if (this.expressions==null) this.expressions = []
 
     return this.expressions
+  }
+
+  organizeTokens(closingTokenType = TokenType.undefined, separatorTokenType = TokenType.commaSeparator): Token[] {
+
+    let tokens: Token[] = []
+    let tokenGroups = undefined
+    let scheduledCloseToken
+
+    // console.log('organizeTokens --')
+
+    while (!scheduledCloseToken && this.tokens[ this.cursor ]) {
+
+      const token = this.tokens[ this.cursor ]
+
+      switch (token.type) {
+      case TokenType.undefined:
+      case TokenType.space:
+            // Skip token
+        break
+
+      case separatorTokenType:
+        if (!tokenGroups) {
+          tokenGroups = [ tokens ]
+        } else {
+          tokenGroups.push( tokens )
+        }
+        tokens = []
+      break
+
+      case closingTokenType:
+        scheduledCloseToken = token
+      break
+
+      case TokenType.openList:
+
+        tokens.push(token)
+        this.cursor++
+        console.log('Start list --')
+        tokens.push(
+          ...this.organizeTokens(TokenType.closeList)
+        )
+        console.log('End list --')
+
+        continue
+
+      break
+      case TokenType.newLine:
+
+        // console.log('new line')
+
+        // Insert end statement unless..
+
+        break
+      default:
+        // console.log(token)
+        tokens.push(token)
+      }
+
+      this.cursor++
+    }
+
+    if (tokenGroups) {
+      // Remaining item
+      if (tokens.length) tokenGroups.push(tokens)
+      tokens = []
+      if (tokenGroups.length===1) {
+        tokens.push(...tokenGroups[0])
+      } else {
+        // Wrap in expression
+        let i = 0
+        for (const tokenGroup of tokenGroups) {
+          // if (i > 0) tokens.push(createArgumentSeparator())
+          tokens.push(
+            createOpenExpression(),
+            ...tokenGroup,
+            createCloseExpression()
+          )
+          i++
+        }
+      }
+    }
+
+    if (scheduledCloseToken) tokens.push(scheduledCloseToken)
+
+    console.log('Organized --')
+    console.log(tokens.map(t=>t.value).join(' '))
+    // tokens.forEach(t=>console.log(t.type, `"${t.value}"`))
+    // console.log('--')
+
+    return tokens
   }
 
   /**
@@ -74,8 +202,9 @@ export class Parser {
    */
   parseExpression(rightBindingPower: number = 0): Expression | void {
 
-    let token
-    if (!(token = this.current())) {
+    let token, expr
+
+/*    if (!(token = this.current())) {
       if (this.hasScheduled()) return this.nextScheduled()
       return
     }
@@ -94,21 +223,37 @@ export class Parser {
       const next = this.nextScheduled()
       return expr===',' ? next : ['do', expr, next]
     }
+*/
 
     // Gather expression to the right
 
+    if ( ! (token = this.current()) ) return
+// console.log('token current', token)
+
+    this.next()
+
+    expr = token.prefix(this)
     token = this.current()
+
+    // console.log('expr~', expr)
+    // console.log('token~', token)
 
     while (token && rightBindingPower < token.power) {
       this.next()
-      expr = this.expandArguments(
-        token.infix(this, expr)
-      )
+      expr = token.infix(this, expr) // this.expandArguments( token.infix(this, expr) )
+
       token = this.current()
+
+      // console.log('~expr~', expr)
+      // console.log('token', token)
     }
 
+    // console.log('~expr', expr)
     return expr
   }
+
+
+  // TODO: Refactor below to semantic token processing step
 
   scheduleExpression(...exprs: Expression[]) {
     this.scheduledExpressions.push(...exprs.filter(e => e!=null))
@@ -172,7 +317,9 @@ export class Parser {
       )
     : expr[0]==='get' && typeof expr[1]==='number' && typeof expr[2]==='number'
       ? expr[1] + parseFloat(`0.${expr[2]}`)
-      : expr
+      : expr[0]==='args..'
+        ? ['list', ...expr.slice(1)]
+        : expr
           .map(e => this.handleUnexpandedKeywords(e))
           .filter(e => e!=null)
   }
