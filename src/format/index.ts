@@ -84,18 +84,21 @@ export const toFormattedString = (
 
   // List form
   if (typeof expr[0]==='string') {
+
     const isLambda = expr[0]==='lambda'
     const funcName = isLambda ? 'λ' : expr[0]
     prefix += funcName + (expr.length > 1 ? ' ' : '')
     const prefixLength = prefix.length
 
     const args = expr.slice(1)
+    if (!args || !args.length) return `${spaces}${prefix})`
+
     let firstArg = args.shift() || []
 
     if (isLambda) {
       // Argument definition
       firstArg = '('+(firstArg as []).join(' ')+')'
-    } else {
+    }  else {
       // First argument on same line as function name
       firstArg = toFormattedString(expr[1], {
         indent: 0,
