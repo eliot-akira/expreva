@@ -2,7 +2,7 @@
  * This is a Lisp interpreter based on [miniMAL](https://github.com/kanaka/miniMAL) ported to TypeScript.
  */
 
-// import { toString } from '../compile'
+import { toString } from '../format'
 import { Environment, RuntimeEnvironment, createEnvironment } from './environment'
 
 export * from './environment'
@@ -210,17 +210,19 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       const args = Array.isArray(ast[1]) ? ast[1] : []
       const body = ast[2]
       const f: Lambda = Object.assign(
+        // The function
         (...givenArgs: any[]) => evaluate(
           body as Expression,
           bindFunctionScope(env, args, givenArgs)
         ),
         {
+          // Associated arguments, body, environment
           lambda: { args, body, scope: env } as LambdaProps,
           // Print definition
-          // toString() {
-          //   const def = ['lambda', args, body]
-          //   return toString(def) // f.name ? ['def', f.name, def] :
-          // }
+          toString() {
+            const def = ['λ', args, body]
+            return toString(def) // f.name ? ['def', f.name, def] :
+          }
         }
       )
       return f
