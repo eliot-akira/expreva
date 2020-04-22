@@ -170,7 +170,7 @@ export class Parser<N, T extends Token> {
 
   public parse(tokens: Iterable<T>) {
 
-    if (!tokens || !tokens[Symbol.iterator] || tokens.next().done) return []
+    if (!tokens || !tokens[Symbol.iterator] || tokens.peek().isEof()) return []
 
     const expressions = []
     const parser = new ExpressionParser(this.prefixParselets, this.xfixParselets, null, tokens)

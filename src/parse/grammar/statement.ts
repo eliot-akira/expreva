@@ -23,16 +23,17 @@ export default function(parser) {
 
         // Merge multiple statements
 
+        // Next is also a do expression
         if (expression.expressions && expression.expressions[0]
           && expression.expressions[0].value==='do'
         ) {
-          // Next is also a do expression
           expressions.push(...expression.expressions[0].args)
+
+        // TODO: Needs rule for ';` as prefix?
         } else if (expression.left && expression.left.expressions
           && expression.left.expressions[0]
           && expression.left.expressions[0].value==='do'
-        ){
-          // TODO: Needs rule for ';` as prefix?
+        ) {
           expressions.push(...expression.left.expressions[0].args)
         } else {
           expressions.push(expression)

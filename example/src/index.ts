@@ -45,10 +45,7 @@ function setText(el, value) {
 }
 
 function renderValue(val) {
-  return expreva.toFormattedString(
-    val
-    // expreva.valueToExpression(val)
-  )
+  return expreva.toFormattedString(val)
 }
 
 function renderInstructions(instr) {

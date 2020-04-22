@@ -16,8 +16,16 @@ export default function(parser) {
 
         do {
 
+          let key = parseExpressionsUntil(parser, [':', ',', '}']) // Previously: parser.parse(0)
+
+          if (key.expressions) {
+            // Preserve key as expression, for example (b): value
+            key.args = key.expressions
+            delete key.expressions
+          }
+
           const keyValuePair = [
-            parseExpressionsUntil(parser, [':', ',', '}']) // Previously: parser.parse(0)
+            key
           ]
 
           if (parser.match(':')) {

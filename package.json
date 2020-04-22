@@ -1,6 +1,6 @@
 {
   "name": "expreva",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Expreva - A language based on arithmetic and algebra expressions",
   "scripts": {
     "build": "rm -rf build ; tgb build",
