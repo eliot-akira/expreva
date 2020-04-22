@@ -5,17 +5,27 @@ export default function(parser) {
   // Positive and negative  sign
 
   for (const operator of [ '+', '-' ]) {
-    parser.prefix(operator, precedence.PREFIX, (token, right) => ({
-      value: token.match,
-      left: { value: 0 },
-      right,
-      toString() { return `(${operator}${right})` },
-    }))
+    parser.prefix(operator, precedence.PREFIX, (token, right) => {
+      // Number
+      if (right.value!=null && typeof right.value==='number') {
+        return {
+          value: token.match==='-' ? (0 - right.value) : (0 + right.value),
+          toString() { return `${operator}${right.value}` },
+        }
+      }
+      // Expression
+      return {
+        value: token.match,
+        left: { value: 0 },
+        right,
+        toString() { return `(${operator}${right})` },
+      }
+    })
   }
 
   // Arithmetic
 
-  for (const operator of [ '~', '!' ]) {
+  for (const operator of [ '!' ]) { // Previously [ '~', '!' ]
     parser.prefix(operator, precedence.PREFIX, (token, right) => ({
       value: token.match,
       right,
@@ -48,10 +58,10 @@ export default function(parser) {
     toString() { return `(${left}!)` }, left
   }))
 
-
   .infix('^', precedence.EXPONENT, parser.RIGHT_ASSOCIATIVE, (token, left, right) => ({
     value: token.match,
-    toString() { return `(${left}^${right})` }, left, right
+    toString() { return `(${left}^${right})` },
+    left, right
   }))
 
   return parser
