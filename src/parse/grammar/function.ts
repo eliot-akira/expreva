@@ -27,5 +27,14 @@ export default function(parser) {
     }
   })
 
+  // Apply to function
+
+  .infix('->', precedence.ASSIGNMENT, parser.RIGHT_ASSOCIATIVE, (token, left, right) => {
+    return {
+      args: [right, left],
+      toString() { return `${left} -> ${right}` },
+    }
+  })
+
   return parser
 }
