@@ -5,6 +5,7 @@ import conditionalRules from './conditional'
 import expressionRules from './expression'
 import functionRules from './function'
 import listRules from './list'
+import memberRules from './member'
 import objectRules from './object'
 import statementRules from './statement'
 import symbolRules from './symbol'
@@ -19,6 +20,7 @@ export const rules = [
   expressionRules,
   functionRules,
   listRules,
+  memberRules,
   objectRules,
   statementRules,
   symbolRules
