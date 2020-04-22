@@ -25,31 +25,37 @@ export function registerTokens(lexer) {
     .token(';', /^(;+)/)
     .token('?', /^(\?)/)
     .token(':', /^(:)/)
-    .token('.', /^(\.)/)
     .token(',', /^(\,)/)
+
+    .token('...', /^(\.\.\.)/)
+    .token('.', /^(\.)/)
 
     .token('->', /^(->)/)
     .token('=>', /^(=>)/)
 
     .token('==', /^(==)/)
     .token('!=', /^(\!=)/)
-    .token('!', /^(\!)/)
+    .token('||', /^(\|\|)/)
+    .token('&&', /^(&&)/)
+
     .token('<=', /^(<=)/)
     .token('<', /^(<)/)
     .token('>=', /^(>=)/)
     .token('>', /^(>)/)
 
-    .token('||', /^(\|\|)/)
-    .token('&&', /^(&&)/)
-
+    .token('!', /^(\!)/)
     .token('=', /^(=)/)
     .token('+', /^(\+)/)
     .token('-', /^(-)/)
     .token('*', /^(\*)/)
     .token('/', /^(\/)/)
+    .token('^', /^(\^)/)
 
     .token('NUMBER', /^(\d+)/)
-    .token('IDENTIFIER', /^([a-zA-Z0-9_]+)/)
+
     .token('STRING_SINGLE', /^\'([^\'\\]*(\\.[^\'\\]*)*)\'/)
     .token('STRING_DOUBLE', /^"([^"\\]*(\\.[^"\\]*)*)"/)
-}
+
+    // Should be last
+    .token('IDENTIFIER', /^(([a-zA-Z0-9_]|[^\u0000-\u007F])+)/)
+  }
