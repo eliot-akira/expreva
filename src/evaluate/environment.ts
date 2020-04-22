@@ -79,6 +79,7 @@ Environment.root = new Environment({
   '-': (a: number = 0, b: number = 0): number => a - b,
   '*': (a: number = 1, b: number = 1): number => a * b,
   '/': (a: number = 0, b: number = 1): number => a / b,
+  '^': (a: number = 0, b: number = 0): number => Math.pow(a, b),
 
   '!': (a: any): boolean => !a,
   '||': (a: any, b: any): boolean => a || b,
