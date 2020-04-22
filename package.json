@@ -4,7 +4,7 @@
   "description": "Expreva - A language based on arithmetic and algebra expressions",
   "scripts": {
     "build": "rm -rf build ; tgb build",
-    "dev": "rm -rf build ; concurrently --prefix none --handle-input 'sleep 2 && testra -w build/tests' 'tgb dev'",
+    "dev": "rm -rf build ; concurrently --prefix none --kill-others --handle-input 'sleep 3 && testra -w build/tests' 'tgb dev'",
     "sandbox": "cd example && tgb dev",
     "test": "yarn build && testra build/tests",
     "type": "tsc --declaration --emitDeclarationOnly",
