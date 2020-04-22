@@ -9,8 +9,6 @@ export default function(parser) {
     '<=',
     '==',
     '!=',
-    '&&',
-    '||',
   ]) {
     parser.infix(operator, precedence.CONDITIONAL, parser.LEFT_ASSOCIATIVE, (token, left, right) => ({
       value: token.match,
@@ -20,6 +18,18 @@ export default function(parser) {
     }))
   }
 
+  // Less precedence
+  for (const operator of [
+    '&&',
+    '||',
+  ]) {
+    parser.infix(operator, precedence.ASSIGNMENT, parser.LEFT_ASSOCIATIVE, (token, left, right) => ({
+      value: token.match,
+      left,
+      right,
+      toString() { return `(${left} ${operator} ${right})` },
+    }))
+  }
 
   return parser
 }
