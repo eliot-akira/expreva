@@ -30,12 +30,21 @@ export const bindFunctionScope = function(
 ): RuntimeEnvironment {
 
   const boundEnv = env.create()
+
   args.forEach((a, i) => a == '&'
     // Spread arguments
     ? boundEnv[
         args[i + 1] as string
       ] = givenArgs.slice(i)
-    : (boundEnv[ a as string ] = givenArgs[i])
+    : typeof a==='string'
+      ? (boundEnv[ a as string ] = givenArgs[i])
+      // Argument defined as expression - for example: (lambda ((def x 1)) (* x x))
+      : (Array.isArray(a) && a[0]==='def' && a[1]!=null)
+        ? boundEnv[ a[1] as string ] = (
+          givenArgs[i]!=null ? givenArgs[i]
+            : evaluateExpression([a], boundEnv)
+        )
+        : env.throw({ message: `Unknown argument expression: ${toString(a)}` })
   )
 
   return boundEnv
