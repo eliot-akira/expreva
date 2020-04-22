@@ -50,10 +50,10 @@ class ExpressionParser<N, T extends Token> implements ExpressionParserInterface<
     const t = this.q.length ? this.q.shift() : this.g.next().value;
 
     if (expect) {
-      if (!t) throw new Error(`Unexpected end of input; expected ${ expect }.`);
-      if (t.type !== expect) throw new Error(`Unexpected ${ t.type } token; expected ${ expect }.`);
+      if (!t) throw new Error(`Unexpected end of input; expected ${ expect }`);
+      if (t.type !== expect) throw new Error(`Unexpected ${ t.type } token; expected ${ expect }`);
     } else {
-      if (!t) throw new Error(`Unexpected end of input.`);
+      if (!t) throw new Error(`Unexpected end of input`);
     }
 
     return t;
@@ -116,11 +116,11 @@ export class Parser<N, T extends Token> {
   private xfixParselets = new Map<string, IXfixParselet<N, T>>();
   private interpreter: ((node: N) => N) | null = null;
 
-  public static readonly PREFIX = true;
-  public static readonly XFIX = false;
+  public readonly PREFIX = true;
+  public readonly XFIX = false;
 
-  public static readonly RIGHT_ASSOC = true;
-  public static readonly LEFT_ASSOC = false;
+  public readonly RIGHT_ASSOCIATIVE = true;
+  public readonly LEFT_ASSOCIATIVE = false;
 
   public register(tokenType: string, parselet: Parselet<N, T>, prefix?: boolean) {
     if (prefix === void 0) {
@@ -170,8 +170,11 @@ export class Parser<N, T extends Token> {
 
   public parse(tokens: Iterable<T>) {
 
+    if (!tokens || !tokens[Symbol.iterator] || tokens.next().done) return []
+
     const expressions = []
     const parser = new ExpressionParser(this.prefixParselets, this.xfixParselets, null, tokens)
+
     let expression
 
     while (expression = parser.parse(0)) {

@@ -1,5 +1,4 @@
-import { Parser } from '../Parser'
-import { Precedence } from './constants'
+import { precedence } from './constants'
 import { createDoExpression } from './utils'
 
 export default function(parser) {
@@ -24,7 +23,7 @@ export default function(parser) {
             expressions.push(parser.parse(0))
           } while (parser.match(','))
 
-          // parser.consume(')') // Single expression only
+          // parser.consume(')') // Previously single expression only
 
           // Keep consuming expressions
           i++
@@ -38,14 +37,16 @@ export default function(parser) {
       }
 
       return {
-        toString() { return `(${expressions.join(';')})` },
         expressions,
+        toString() { return `(${expressions.join(';')})` },
       }
     }
-  }, Parser.PREFIX)
+  }, parser.PREFIX)
+
+  // Function call
 
   .register('(', {
-    precedence: Precedence.CALL,
+    precedence: precedence.CALL,
     parse(parser, token, left) {
 
       const args = []
@@ -59,11 +60,11 @@ export default function(parser) {
       }
 
       return {
-        toString() { return `${left}(${args.join(',')})` },
         args: [left, ...args],
+        toString() { return `${left}(${args.join(',')})` },
       }
     }
-  }, Parser.XFIX)
+  }, parser.XFIX)
 
   return parser
 }

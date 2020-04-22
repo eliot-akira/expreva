@@ -1,5 +1,4 @@
-import { Parser } from '../Parser'
-import { Precedence } from './constants'
+import { precedence } from './constants'
 import { createDoExpression } from './utils'
 
 export default function(parser) {
@@ -9,7 +8,7 @@ export default function(parser) {
   // Statement
 
   .register(';', {
-    precedence: Precedence.STATEMENT,
+    precedence: precedence.STATEMENT,
     parse(parser, token, left) {
 
       let expressions = [left]
@@ -27,7 +26,14 @@ export default function(parser) {
         if (expression.expressions && expression.expressions[0]
           && expression.expressions[0].value==='do'
         ) {
+          // Next is also a do expression
           expressions.push(...expression.expressions[0].args)
+        } else if (expression.left && expression.left.expressions
+          && expression.left.expressions[0]
+          && expression.left.expressions[0].value==='do'
+        ){
+          // TODO: Needs rule for ';` as prefix?
+          expressions.push(...expression.left.expressions[0].args)
         } else {
           expressions.push(expression)
         }
@@ -43,11 +49,11 @@ export default function(parser) {
       }
 
       return {
-        toString() { return `(${expressions.join(';')})` },
         expressions,
+        toString() { return `(${expressions.join(';')})` },
       }
     }
-  }, Parser.XFIX)
+  }, parser.XFIX)
 
   return parser
 }

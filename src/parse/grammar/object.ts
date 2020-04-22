@@ -1,5 +1,4 @@
-import { Parser } from '../Parser'
-import { Precedence } from './constants'
+import { parseExpressionsUntil } from './utils'
 
 export default function(parser) {
 
@@ -17,9 +16,14 @@ export default function(parser) {
 
         do {
 
-          const keyValuePair = [parser.parse(0)]
+          const keyValuePair = [
+            parseExpressionsUntil(parser, [':', ',', '}']) // Previously: parser.parse(0)
+          ]
+
           if (parser.match(':')) {
-            keyValuePair.push(parser.parse(0))
+            keyValuePair.push(
+              parseExpressionsUntil(parser, [',', '}']) // Previously: parser.parse(0)
+            )
           }
 
           args.push(keyValuePair)
@@ -31,16 +35,16 @@ export default function(parser) {
 
       return {
         value: 'obj',
+        args,
         toString() {
           return !args[0] ? '{}'
             : `{\n  ${args.map(([key, value]) =>
               `${key}: ${value}`).join(',\n  ')
             }\n}`
         },
-        args,
       }
     }
-  }, Parser.PREFIX)
+  }, parser.PREFIX)
 
   return parser
 }

@@ -1,38 +1,20 @@
-import lex from './lex'
-import parseTokensToSyntaxTree from './parse'
-
-
+import { parse as defaultParse } from './parse'
 import { evaluate as evaluateSyntaxTree } from './evaluate'
 
-export const parse = (source: string) => {
+export { parse, Lexer, Parser } from './parse'
+export { createEnvironment } from './evaluate'
 
-  const tokens = lex( source )
-
-  try {
-
-    return parseTokensToSyntaxTree( tokens )
-
-  } catch(e) {
-    if (!e.lexer) throw e
-    const { start: { line, column } } = e.strpos()
-    throw new Error(`Parse error: Token ${e.type} at line ${line} column ${column}`)
-  }
-}
-
-export function evaluate(source, env) {
+export function evaluate(source, env, parse = defaultParse) {
   return evaluateSyntaxTree(
-    Array.isArray(source) ? source : parse(source),
+    typeof source === 'string' ? parse(source) : source,
     env
   )
 }
 
 export function toString(nodes) {
+  if (nodes==null) return 'nil'
   if (!Array.isArray(nodes)) return nodes
   return `(${nodes.map(node => toString(node)).join(' ')})`
 }
 
-
 export { toString as toFormattedString }
-
-export { Token } from './Parser'
-export { createEnvironment } from './evaluate'

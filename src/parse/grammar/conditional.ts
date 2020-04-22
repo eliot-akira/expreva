@@ -1,5 +1,4 @@
-import { Parser } from '../Parser'
-import { Precedence } from './constants'
+import { precedence } from './constants'
 
 export default function(parser) {
 
@@ -8,7 +7,7 @@ export default function(parser) {
   // Conditional
 
   .register('?', {
-    precedence: Precedence.CONDITIONAL,
+    precedence: precedence.CONDITIONAL,
     parse(parser, token, left) {
 
       const trueBranch = parser.parse(0)
@@ -23,11 +22,11 @@ export default function(parser) {
       }
 
       return {
+       args: [ifNode, left, trueBranch, elseBranch],
        toString() { return `(${left} ? ${trueBranch} : ${elseBranch})` },
-       args: [ifNode, left, trueBranch, elseBranch]
       }
     }
-  }, Parser.XFIX)
+  }, parser.XFIX)
 
   return parser
 }

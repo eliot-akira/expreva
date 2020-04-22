@@ -1,5 +1,5 @@
 
-export const Precedence = {
+export const precedence = {
   // Ordered in increasing precedence.
   STATEMENT  : 1,
   ASSIGNMENT : 2,

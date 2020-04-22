@@ -1,40 +1,41 @@
-import { Parser } from '../Parser'
-import arithmeticRules from './arithmetic'
-import assignmentRules from './assignment'
-import comparisonRules from './comparison'
-import conditionalRules from './conditional'
-import expressionRules from './expression'
-import functionRules from './function'
-import listRules from './list'
-import objectRules from './object'
-import statementRules from './statement'
-import symbolRules from './symbol'
+import { Lexer } from './Lexer'
+import { Parser } from './Parser'
+import { registerTokens, registerRules } from './grammar'
+import { createDoExpression } from './grammar/utils'
 
-import { createDoExpression } from './utils'
+export { Lexer, Parser }
 
-const parser = new Parser()
+const defaultLexer = new Lexer()
+const defaultParser = new Parser()
 
-;[
-  arithmeticRules,
-  assignmentRules,
-  comparisonRules,
-  conditionalRules,
-  expressionRules,
-  functionRules,
-  listRules,
-  objectRules,
-  statementRules,
-  symbolRules
-].forEach(rules => rules(parser))
+registerTokens( defaultLexer )
+registerRules( defaultParser )
 
-export default function parse(tokens) {
+export function parse( source: string, lexer = defaultLexer, parser = defaultParser ) {
 
-  const exprs = parser.parse(tokens)
+  lexer.source = source
+
+  let exprs
+  try {
+
+    exprs = parser.parse( lexer )
+
+  } catch(e) {
+    if (!e.lexer) {
+      const { line, column } = lexer.strpos()
+      throw new Error(`Parse error: ${e.message} at line ${line} column ${column}`)
+    }
+    // Parser can throw a token
+    const { start: { line, column } } = e.strpos()
+    throw new Error(`Parse error: Token ${e.type} at line ${line} column ${column}`)
+  }
+
+  if (!exprs) return exprs
+
   const ast = parseSyntax(
-    // Unwrap single expression
-    exprs[1]==null ? exprs[0]
-      // Wrap multiple expressions
-      : createDoExpression(exprs)
+    exprs[1]==null
+      ? exprs[0] // Unwrap single expression
+      : createDoExpression(exprs) // Wrap multiple expressions
   )
 
   return ast
@@ -48,14 +49,16 @@ function parseSyntax(ast: any) {
   if (Array.isArray(ast)) return ast.map(parseSyntax)
 
   // Expressions can be reduced to a single expression
-  if (ast.expressions!=null) {
-    if (!ast.expressions[1]) return parseSyntax(ast.expressions[0])
+  if (ast.expressions != null) {
+    if (!ast.expressions[1]) {
+      return parseSyntax(ast.expressions[0])
+    }
     return ast.expressions.map(parseSyntax)
   }
 
   // Arguments are always an array
-  if (ast.args!=null) {
-    if (ast.value==null) {
+  if (ast.args != null) {
+    if (ast.value == null) {
       return ast.args.map(parseSyntax)
     }
     return [
@@ -64,28 +67,20 @@ function parseSyntax(ast: any) {
     ]
   }
 
-  // Nullary
-  if (ast.left==null) {
-    if (ast.right!=null) {
-      if (ast.value==null) return parseSyntax(ast.right)
-      return [ast.value, parseSyntax(ast.right)]
-    }
-    return ast.value
+  const node = ast.value != null
+    ? [ast.value]
+    : []
+
+  if (ast.left != null) {
+    node.push(parseSyntax(ast.left))
   }
 
-  // Prefix
-  if (ast.right==null) {
-    if (ast.value==null) return parseSyntax(ast.left)
-    return [
-      ast.value,
-      parseSyntax(ast.left),
-    ]
+  if (ast.right != null) {
+    node.push(parseSyntax(ast.right))
   }
 
-  // Infix
-  return [
-    ast.value,
-    parseSyntax(ast.left),
-    parseSyntax(ast.right)
-  ]
+  if (node[0] == null) return []
+  if (node[1] == null) return node[0]
+
+  return node
 }

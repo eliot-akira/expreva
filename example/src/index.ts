@@ -79,7 +79,7 @@ function render() {
 
   try {
 
-    instructions = expreva.parse(expression, env)
+    instructions = expreva.parse(expression)
 
     if (instructions==null) {
       log('Empty result after parse')
@@ -130,7 +130,7 @@ var debounce = function(fn, duration) {
   }
 }
 
-var scheduleRender = debounce(render, 10)
+var scheduleRender = debounce(render, 5)
 
 $runAction.addEventListener('click', function() {
   scheduleRender()

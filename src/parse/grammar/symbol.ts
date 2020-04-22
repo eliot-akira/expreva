@@ -1,5 +1,4 @@
-import { Parser } from '../Parser'
-import { Precedence } from './constants'
+import { precedence } from './constants'
 
 export default function(parser) {
 
@@ -38,13 +37,13 @@ export default function(parser) {
   // Comment - IDEA: Hang documentation on variables
 
   .nullary('COMMENT', (token) => ({
+    comment: token.match,
     toString() { return '' },
-    comment: token.match
   }))
 
   .nullary('COMMENT_BLOCK', (token) => ({
+    comment: token.match,
     toString() { return '' },
-    comment: token.match
   }))
 
   // New lines
@@ -54,23 +53,23 @@ export default function(parser) {
       const left = parser.parse(0)
       return {
         // value: token.match,
+        left,
         toString() { return ''+left },
-        left
       }
     }
-  }, Parser.PREFIX)
+  }, parser.PREFIX)
 
   .register('NEWLINE', {
-    precedence: Precedence.STATEMENT,
+    precedence: precedence.STATEMENT,
     parse(parser, token, left) {
       // const right = parser.parse(0)
       return {
         // value: token.match,
-        toString() { return ''+left },
         left,
+        toString() { return ''+left },
       }
     }
-  }, Parser.XFIX)
+  }, parser.XFIX)
 
 // .nullary('NEWLINE', (token) => ({
 //   value: token.match,
