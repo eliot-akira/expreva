@@ -25,8 +25,8 @@ export default {
   '>': (a: any, b: any): boolean => a > b,
   '>=': (a: any, b: any): boolean => a >= b,
 
-  map: (fn: (value: any, index: number | string) => any) =>
-    (arr: string | any[] | { [key: string]: any }) =>
+  map: (arr: string | any[] | { [key: string]: any }) =>
+    (fn: (value: any, index: number | string) => any) =>
       typeof arr==='string' ? (arr.split('')).map(fn)
       : Array.isArray(arr) ? arr.map(fn) // Array: value, index
         : (Object.keys(arr).reduce((obj: { [key: string]: any }, key) => {
@@ -34,8 +34,8 @@ export default {
           return obj
         }, {})),
 
-  join: (separator: string | any[] | { [key: string]: any }) =>
-    (target: any[] | { [key: string]: any }) =>
+  join: (target: any[] | { [key: string]: any }) =>
+    (separator: string | any[] | { [key: string]: any }) =>
       Array.isArray(target)
         ? (typeof separator==='string')
           ? target.join(separator)
@@ -64,7 +64,10 @@ export default {
 
   push: (arr: any[]) => (target: any) => arr.push(target) && arr,
   pop: (arr: any[]) => arr.pop(),
-  insert: (arr: any[]) => (index: number, target: any) => arr.splice(index, 0, target),
+  insert: (arr: any[]) => (index: number, target: any) => {
+    arr.splice(index, 0, target)
+    return arr
+  },
   slice: (arr: any[]) => (start: number, end?:number) => arr.slice(start, end),
   filter: (arr: any[]) => (callback: (arr: any[]) => boolean) => arr.filter(callback),
   reduce: (arr: any[]) => (reducer: (value: any, acc: any) => any, acc: any) => arr.reduce(reducer, acc),
