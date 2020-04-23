@@ -41,7 +41,7 @@ export const bindFunctionScope = function(
         ? (a[0]==='def' && a[1]!=null)
           ? boundEnv[ a[1] as string ] = (
             givenArgs[i]!=null ? givenArgs[i]
-              : evaluateExpression([ a.slice(2) ], boundEnv)
+              : evaluateExpression(a[2], boundEnv)
           )
           // Spread arguments - alternate syntax (lambda (x (... y)) ())
           : (a[0]==='...' && a[1]!=null)

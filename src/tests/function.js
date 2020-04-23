@@ -16,11 +16,13 @@ test('function', it => {
 
   is('f = (x, y) => x ; f(true, () => 1)', true)
 
+  is('3 -> x => x * x', 9)
+
 })
 
-// test('function default arguments', it => {
-//   const is = eva(it)
-//   is('f = (x = 1, y = 2) => x + y f()', 3)
-//   is('f = (x = 1, y = 2) => x + y f(3)', 5)
-//   is('f = (x = 1, y = 2) => x + y f(3, 4)', 7)
-// })
+test('function default arguments', it => {
+  const is = eva(it)
+  is('f = (x = 1, y = 2) => x + y f()', 3)
+  is('f = (x = 1, y = 2) => x + y f(3)', 5)
+  is('f = (x = 1, y = 2) => x + y f(3, 4)', 7)
+})

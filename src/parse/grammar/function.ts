@@ -29,12 +29,27 @@ export default function(parser) {
 
   // Apply to function
 
-  .infix('->', precedence.CALL, parser.LEFT_ASSOCIATIVE, (token, left, right) => {
-    return {
-      args: [right, left],
-      toString() { return `${left} -> ${right}` },
+  .register('->', {
+    precedence: precedence.CALL,
+    parse(parser, token, left) {
+
+      let right
+
+      // Handle special case: x -> y => z
+      const nextNextToken = parser.peek(1)
+      if (nextNextToken && nextNextToken.type==='=>') {
+        // Get the whole lambda definition
+        right = parser.parse(0)
+      } else {
+        right = parser.parse(this.precedence)
+      }
+
+      return {
+        args: [right, left],
+        toString() { return `${left} -> ${right}` },
+      }
     }
-  })
+  }, parser.XFIX)
 
   return parser
 }
