@@ -48,6 +48,9 @@ export function registerTokens(lexer) {
     .token('*=', /^(\*=)/)
     .token('/=', /^(\/=)/)
 
+    .token('++', /^(\+\+)/)
+    .token('--', /^(--)/)
+
     .token('!', /^(\!)/)
     .token('=', /^(=)/)
     .token('+', /^(\+)/)

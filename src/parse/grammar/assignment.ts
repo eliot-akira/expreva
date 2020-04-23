@@ -30,5 +30,20 @@ export default function(parser) {
     }))
   }
 
+  for (const operator of ['+', '-']) {
+
+    parser.postfix(`${operator}${operator}`, precedence.POSTFIX, (token, left) => ({
+      value: 'def',
+      left,
+      right: {
+        value: operator,
+        left,
+        right: { value: 1 },
+        // toString() { return `(${left} ${operator} ${right})` },
+      },
+      toString() { return `(${left}${operator}${operator})` },
+    }))
+  }
+
   return parser
 }
