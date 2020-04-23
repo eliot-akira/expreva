@@ -52,10 +52,8 @@ export default function(parser) {
     parse(parser, token) {
       const left = parser.parse(0)
       return {
+        ...left,
         afterNewLine: true,
-        // value: token.match,
-        left,
-        toString() { return ''+left },
       }
     }
   }, parser.PREFIX)
@@ -63,20 +61,12 @@ export default function(parser) {
   .register('NEWLINE', {
     precedence: precedence.STATEMENT,
     parse(parser, token, left) {
-      // const right = parser.parse(0)
       return {
+        ...left,
         afterNewLine: true,
-        // value: token.match,
-        left,
-        toString() { return ''+left },
       }
     }
   }, parser.XFIX)
-
-// .nullary('NEWLINE', (token) => ({
-//   value: token.match,
-//   toString() { return this.value },
-// }))
 
   return parser
 }
