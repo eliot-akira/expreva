@@ -43,28 +43,27 @@ export function parse( source: string, lexer = defaultLexer, parser = defaultPar
 
 function parseSyntax(ast: any) {
 
-  // Convert to Lisp-style syntax tree for the evaluator
+  // Create compact Lisp-style syntax tree for the evaluator
 
-  if (ast==null) return []
-  if (Array.isArray(ast)) return ast.map(parseSyntax)
+  if (ast==null) return
+  if (Array.isArray(ast)) return parseSyntaxArray(ast)
 
   // Expressions can be reduced to a single expression
   if (ast.expressions != null) {
     if (!ast.expressions[1]) {
       return parseSyntax(ast.expressions[0])
     }
-    return ast.expressions.map(parseSyntax)
+    return parseSyntaxArray(ast.expressions)
   }
 
   // Arguments are always an array
   if (ast.args != null) {
     if (ast.value == null) {
-      return ast.args.map(parseSyntax)
+      return parseSyntaxArray(ast.args)
     }
-    return [
-      ast.value,
-      ...ast.args.map(parseSyntax),
-    ]
+    const arr = parseSyntaxArray(ast.args)
+    arr.unshift( ast.value )
+    return arr
   }
 
   // Restore number with decimal separator from member expression
@@ -91,8 +90,12 @@ function parseSyntax(ast: any) {
     node.push(parseSyntax(ast.right))
   }
 
-  if (node[0] == null) return []
+  if (node[0] == null) return
   if (node[1] == null) return node[0]
 
   return node
+}
+
+function parseSyntaxArray(nodes) {
+  return nodes.map(parseSyntax).filter(n => n!=null)
 }
