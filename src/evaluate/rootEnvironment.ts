@@ -69,6 +69,8 @@ export default {
   filter: (arr: any[]) => (callback: (arr: any[]) => boolean) => arr.filter(callback),
   reduce: (arr: any[]) => (reducer: (value: any, acc: any) => any, acc: any) => arr.reduce(reducer, acc),
 
+  keys: (obj: { [key: string]: any }) => Object.keys(obj),
+
   set: (obj: { [key: string]: any }) =>
     (key: string | { [key: string]: any }, value?: any) => {
       if (typeof key==='object') {
