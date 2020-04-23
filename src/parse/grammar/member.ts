@@ -1,42 +1,60 @@
 import { precedence } from './constants'
 
-export default function(parser) {
+function literalStringOrExpression(node) {
+  return node && typeof node.value==='string'
+    ? {
+      value: ['expr', node.value],
+      toString() { return `(expr ${node.value})` }
+    }
+    : node
+}
 
-  // Member
+export default function(parser) {
 
   parser
 
-  .infix('.', precedence.EXPONENT, parser.RIGHT_ASSOCIATIVE, (token, left, right) => {
-
-    if (left.value!=null && typeof left.value==='number') {
-
-      // Number with decimal separator
-
-      const fraction = parseFloat(`0.${right.value}`)
+  // Spread
+  .register('...', {
+    parse(parser) {
+      const right = parser.parse(0)
       return {
-        value: left.value >= 0
-          ? left.value + fraction
-          : left.value - fraction
-        ,
-        toString() { return `${left.value}.${right.value}` },
+        value: '...',
+        right,
+        toString() { return `...${right}` },
       }
     }
+  }, parser.PREFIX)
 
-    // Member of list or object
-    return {
-      value: 'get',
-      left,
-      right: right.value!=null
-        // Literal value
-        ? {
-          value: ['expr', right.value],
-          toString() { return `(expr ${this.value})` },
+  // Member
+  .register('.', {
+    precedence: precedence.CALL,
+    parse(parser, token, left) {
+
+      let right = parser.parse(this.precedence)
+
+      if (typeof left.value!=='number') {
+
+        // Nested get members - For example, obj.x.y.z becomes (get (get (get obj x) y) z)
+
+        while (right!=null && right.value==='get') {
+          left = {
+            value: 'get',
+            left,
+            right: literalStringOrExpression(right.left),
+            toString() { return `(get ${left} ${right.left})` },
+          }
+          right = right.right
         }
-        : right
-      ,
-      toString() { return `(${left}.${right})` },
+      }
+
+      return {
+        value: 'get',
+        left,
+        right: literalStringOrExpression(right),
+        toString() { return `(get ${left} ${right})` },
+      }
     }
-  })
+  }, parser.XFIX)
 
   return parser
 }

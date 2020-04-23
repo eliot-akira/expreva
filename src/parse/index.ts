@@ -20,6 +20,16 @@ export function parse( source: string, lexer = defaultLexer, parser = defaultPar
 
     exprs = parser.parse( lexer )
 
+    if (!exprs) return exprs
+
+    const ast = parseSyntax(
+      exprs[1]==null
+        ? exprs[0] // Unwrap single expression
+        : createDoExpression(exprs) // Wrap multiple expressions
+    )
+
+    return ast
+
   } catch(e) {
     if (!e.lexer) {
       const { line, column } = lexer.strpos()
@@ -29,16 +39,6 @@ export function parse( source: string, lexer = defaultLexer, parser = defaultPar
     const { start: { line, column } } = e.strpos()
     throw new Error(`Parse error: Token ${e.type} at line ${line} column ${column}`)
   }
-
-  if (!exprs) return exprs
-
-  const ast = parseSyntax(
-    exprs[1]==null
-      ? exprs[0] // Unwrap single expression
-      : createDoExpression(exprs) // Wrap multiple expressions
-  )
-
-  return ast
 }
 
 function parseSyntax(ast: any) {
@@ -65,6 +65,18 @@ function parseSyntax(ast: any) {
       ast.value,
       ...ast.args.map(parseSyntax),
     ]
+  }
+
+  // Restore number with decimal separator from member expression
+  if (ast.value==='get' && ast.left && typeof ast.left.value==='number') {
+
+    if (ast.right==null || typeof ast.right.value!=='number') {
+      throw new Error('Invalid number after decimal separator "."')
+    }
+
+    const numberString = `${ast.left.value}.${ast.right.value}`
+
+    return parseFloat(numberString)
   }
 
   const node = ast.value != null

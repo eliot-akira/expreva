@@ -11,19 +11,23 @@ export default function(parser) {
 
       const args = []
 
-      // There may be no arguments at all.
+      // Can be empty
       if (!parser.match(']')) {
 
-          do {
+        do {
 
-            // Each argument can be one or more expressions
-            args.push(
-              parseExpressionsUntil(parser, [',', ']'])
-            )
+          // Support trailing comma
+          const next =  parser.peek(0)
+          if (!next || next.type===']') break
 
-          } while (parser.match(','))
+          // Each argument can be one or more expressions
+          args.push(
+            parseExpressionsUntil(parser, [',', ']'])
+          )
 
-          parser.consume(']')
+        } while (parser.match(','))
+
+        parser.consume(']')
       }
 
       return {

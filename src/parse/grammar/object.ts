@@ -11,12 +11,16 @@ export default function(parser) {
 
       const args = []
 
-      // There may be no arguments at all.
+      // Can be empty
       if (!parser.match('}')) {
 
         do {
 
-          let key = parseExpressionsUntil(parser, [':', ',', '}']) // Previously: parser.parse(0)
+          // Support trailing comma
+          const next =  parser.peek(0)
+          if (!next || next.type==='}') break
+
+          let key = parseExpressionsUntil(parser, [':', ',', '}'])
 
           if (key.expressions) {
             // Preserve key as expression, for example (b): value
@@ -24,13 +28,11 @@ export default function(parser) {
             delete key.expressions
           }
 
-          const keyValuePair = [
-            key
-          ]
+          const keyValuePair = [ key ]
 
           if (parser.match(':')) {
             keyValuePair.push(
-              parseExpressionsUntil(parser, [',', '}']) // Previously: parser.parse(0)
+              parseExpressionsUntil(parser, [',', '}'])
             )
           }
 

@@ -1,16 +1,16 @@
 export interface Token {
-  type: string;
+  type: string
 }
 
 export interface ExpressionParserInterface<N, T extends Token> {
-  peek(d: number): Token | undefined;
-  consume(expect?: string): T;
-  match(expect: string): boolean;
-  parse(precedence: number): N;
+  peek(d: number): Token | undefined
+  consume(expect?: string): T
+  match(expect: string): boolean
+  parse(precedence: number): N
 }
 
 export interface Parselet<N, T extends Token> {
-  parse(parser: ExpressionParserInterface<N, T>, token: T, left?: N): N;
+  parse(parser: ExpressionParserInterface<N, T>, token: T, left?: N): N
 }
 
 export class PrefixParselet<N, T extends Token> implements Parselet<N, T> {
@@ -18,8 +18,8 @@ export class PrefixParselet<N, T extends Token> implements Parselet<N, T> {
 }
 
 export interface IXfixParselet<N, T extends Token> extends Parselet<N, T> {
-  readonly precedence: number;
-  parse(parser: ExpressionParserInterface<N, T>, token: T, left: N): N;
+  readonly precedence: number
+  parse(parser: ExpressionParserInterface<N, T>, token: T, left: N): N
 }
 
 export class XfixParselet<N, T extends Token> implements Parselet<N, T> {
@@ -31,7 +31,7 @@ export class XfixParselet<N, T extends Token> implements Parselet<N, T> {
 
 export class PrefixUnaryParselet<N, T extends Token> extends PrefixParselet<N, T> {
   constructor(cons: (token: T, right: N) => N, precedence: number) {
-    super((parser: ExpressionParserInterface<N, T>, token: T) => cons.call(this, token, parser.parse(precedence)));
+    super((parser: ExpressionParserInterface<N, T>, token: T) => cons.call(this, token, parser.parse(precedence)))
   }
 }
 
@@ -54,8 +54,8 @@ export class BinaryParselet<N, T extends Token> extends XfixParselet<N, T> {
     associativity: boolean,
   ) {
     super((parser: ExpressionParserInterface<N, T>, token: T, left: N) => {
-      const right = parser.parse(this.precedence - (associativity?1:0));
-      return cons.call(this, token, left, right);
-    }, precedence);
+      const right = parser.parse(this.precedence - (associativity?1:0))
+      return cons.call(this, token, left, right)
+    }, precedence)
   }
 }

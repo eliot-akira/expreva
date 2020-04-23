@@ -1,3 +1,5 @@
+import rootEnvironment from './rootEnvironment'
+
 export type RuntimeEnvironment = Environment & EnvironmentProps
 
 export type EnvironmentProps = {
@@ -6,8 +8,12 @@ export type EnvironmentProps = {
 
 export class Environment {
 
-  // See bottom of file for definition
-  static root: RuntimeEnvironment
+  // Root environment is immutable and provides built-in functions
+  static root: RuntimeEnvironment = new Environment(
+    rootEnvironment as EnvironmentProps,
+    false
+  )
+
   // Global scope
   readonly global?: RuntimeEnvironment
   // Parent scope
@@ -69,61 +75,6 @@ export class RuntimeError extends Error {
     super(message)
   }
 }
-
-Environment.root = new Environment({
-  true: true,
-  false: false,
-  nil: null,
-
-  '+': (a: number = 0, b: number = 0): number => a + b,
-  '-': (a: number = 0, b: number = 0): number => a - b,
-  '*': (a: number = 1, b: number = 1): number => a * b,
-  '/': (a: number = 0, b: number = 1): number => a / b,
-  '^': (a: number = 0, b: number = 0): number => Math.pow(a, b),
-
-  '!': (a: any): boolean => !a,
-  '||': (a: any, b: any): boolean => a || b,
-  '&&': (a: any, b: any): boolean => a && b,
-
-  '==': (a: any, b: any): boolean =>
-    // undefined == nil
-    a==null && b==null ? true : a === b,
-  '!=': function(a: any, b: any): boolean {
-    return !this['=='](a,b) //  a !== b
-  },
-
-  '<': (a: any, b: any): boolean => a < b,
-  '<=': (a: any, b: any): boolean => a <= b,
-  '>': (a: any, b: any): boolean => a > b,
-  '>=': (a: any, b: any): boolean => a >= b,
-
-  map: (fn: (value: any, index: number | string) => any) =>
-    (arr: string | any[] | { [key: string]: any }) =>
-      typeof arr==='string' ? (arr.split('')).map(fn)
-      : Array.isArray(arr) ? arr.map(fn) // Array: value, index
-        : (Object.keys(arr).reduce((obj: { [key: string]: any }, key) => {
-          obj[key] = fn(key, arr[key]) // Object: key, value
-          return obj
-        }, {})),
-
-  join: (separator: string | any[] | { [key: string]: any }) =>
-    (target: any[] | { [key: string]: any }) =>
-      Array.isArray(target)
-        ? (typeof separator==='string')
-          ? target.join(separator)
-          : Array.isArray(separator)
-            ? target.concat(separator)
-            : (target.push(separator) && target)
-        : typeof target==='string'
-          ? target + separator // Assume two strings
-          : typeof separator==='string'
-            ? Object.keys(target).map(key => target[key]).join(separator)
-            : Object.assign(target, separator) // Assume two objects
-  ,
-  print: (...args: any) => {
-    console.log(...args.map(a => a instanceof Function ? a.toString() : a))
-  }
-} as EnvironmentProps, false)
 
 export const createEnvironment = (props?: EnvironmentProps): RuntimeEnvironment =>
   Environment.root.create(props)

@@ -52,6 +52,7 @@ export default function(parser) {
     parse(parser, token) {
       const left = parser.parse(0)
       return {
+        afterNewLine: true,
         // value: token.match,
         left,
         toString() { return ''+left },
@@ -64,6 +65,7 @@ export default function(parser) {
     parse(parser, token, left) {
       // const right = parser.parse(0)
       return {
+        afterNewLine: true,
         // value: token.match,
         left,
         toString() { return ''+left },

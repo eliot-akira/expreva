@@ -13,6 +13,7 @@ test('spread', it => {
 
   // Function arguments
   is(`f = (x, ...y) => y f(1, 2, 3, 4)`, [2, 3, 4])
-  is(`f = (x, ...y, z) => [x, ...y, z] f(1, 2, 3, 4)`, [1, 2, 3, 4])
-  is(`f = (x, ...y, z) => x + (y->reduce((total, value) => total += value, 0) + z) f(1, 2, 3, 4)`, 10)
+
+  is(`f = (x, ...y) => [x, ...y] f(1, 2, 3, 4)`, [1, 2, 3, 4])
+  is(`f = (x, ...y) => x + y->reduce((total, value) => total += value, 0) f(1, 2, 3, 4)`, 10)
 })

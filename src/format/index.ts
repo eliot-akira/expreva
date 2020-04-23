@@ -51,6 +51,7 @@ export const toFormattedString = (
   expr: Expression,
   internalProps?: { [key: string]: any }
 ): string => {
+
   const {
     indent = 0,
     childIndent = indent as number,
@@ -120,15 +121,15 @@ export const toFormattedString = (
   if (top && !expr.length) return '' // Empty list of instructions
 
   // Array
-  prefix += '' // 'list' + (expr.length ? ' ' : '')
+  // prefix += '' // 'list' + (expr.length ? ' ' : '')
   const prefixLength = prefix.length
 
   return `${spaces}${prefix}${
     expr.map((e, i) => toFormattedString(e, {
-      indent: i===0 ? 0 : childIndent + prefixLength, //!Array.isArray(e) ? (childIndent + prefixLength) : childIndent,
-      childIndent: /*i===0 ? 0 : */ childIndent + prefixLength,
+      indent: i===0 ? 0 : (childIndent + prefixLength), //!Array.isArray(e) ? (childIndent + prefixLength) : childIndent,
+      childIndent: childIndent + prefixLength,
       top: false,
-      inner: true
+      inner: i > 0
     })).join('\n')
   })`
 

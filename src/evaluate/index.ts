@@ -31,19 +31,23 @@ export const bindFunctionScope = function(
 
   const boundEnv = env.create()
 
-  args.forEach((a, i) => a == '&'
-    // Spread arguments
-    ? boundEnv[
-        args[i + 1] as string
-      ] = givenArgs.slice(i)
-    : typeof a==='string'
+  args.forEach((a, i) =>
+    // Spread arguments - (lambda (x & y) ())
+    a === '&' ? boundEnv[ args[i + 1] as string ] = givenArgs.slice(i) :
+    typeof a==='string'
       ? (boundEnv[ a as string ] = givenArgs[i])
-      // Argument defined as expression - for example: (lambda ((def x 1)) (* x x))
-      : (Array.isArray(a) && a[0]==='def' && a[1]!=null)
-        ? boundEnv[ a[1] as string ] = (
-          givenArgs[i]!=null ? givenArgs[i]
-            : evaluateExpression([a], boundEnv)
-        )
+      : Array.isArray(a)
+        // Default argument - for example: (lambda ((def x 1)) (* x x))
+        ? (a[0]==='def' && a[1]!=null)
+          ? boundEnv[ a[1] as string ] = (
+            givenArgs[i]!=null ? givenArgs[i]
+              : evaluateExpression([ a.slice(2) ], boundEnv)
+          )
+          // Spread arguments - alternate syntax (lambda (x (... y)) ())
+          : (a[0]==='...' && a[1]!=null)
+            ? boundEnv[ a[1] as string ] = givenArgs.slice(i)
+            // Expression as function argument?
+            : evaluateExpression([ a ], boundEnv)
         : env.throw({ message: `Unknown argument expression: ${toString(a)}` })
   )
 
@@ -111,18 +115,44 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       return
 
     // List given arguments as array: list(1, 2, x) => [1, 2, 3]
-    case 'list':
-      return ast.slice(1).map(a => evaluate(a, env))
+    case 'list': {
+      const exprs = ast.slice(1)
+      const list = []
+
+      for (const expr of exprs) {
+        // Spread
+        if (Array.isArray(expr) && expr[0]==='...') {
+          list.push(...evaluate(expr.slice(1), env))
+        } else {
+          list.push(evaluate(expr, env))
+        }
+      }
+      return list
+    }
 
       // Object from key-value pairs
     case 'obj':
       return ast.slice(1).reduce((obj: { [key: string]: any }, pair) => {
-        if (pair==null) return obj
-        if (!Array.isArray(pair)) pair = [pair, pair]
+
+        if (pair==null || !Array.isArray(pair)) return obj
+
+        if (pair[1]==null) {
+          const left = pair[0]
+          // Spread
+          if (Array.isArray(left) && left[0]==='...') {
+            Object.assign(obj, evaluate(left.slice(1), env))
+            return obj
+          }
+          // { key } becomes { key: key }
+          pair = [left, left]
+        }
+
         const [left, right] = pair as Expression[]
+
         const key: string = typeof left==='object'
           ? evaluate(left, env)
           : left
+
         obj[ key ] = evaluate(right, env)
         return obj
       }, {})
@@ -136,11 +166,14 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
       if (Array.isArray(varName)) {
         const result = [...varName] // Do not mutate original ast!
         const member = result.pop()
+
         result.push([
           'def',
+          // Member key is an expression - string must be quoted
           evaluate(member as Expression, env),
           value
         ])
+
         ast = result
         continue
       }
@@ -176,6 +209,7 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
 
       let value = rootValue
       for (const member of members) {
+
         // Member can be an expression to define
         if (Array.isArray(member) && member[0]==='def') {
           value = (
@@ -183,6 +217,7 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
           )
           break
         }
+
         const key = evaluate(member as Expression, env)
         if (key instanceof Function) {
           value = key(value)
@@ -196,8 +231,9 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
         ) return
         if (value[key] instanceof Function) {
           value = value[key].bind(value)
-        } else
-        value = value[key]
+        } else {
+          value = value[key]
+        }
       }
       return value
     }
