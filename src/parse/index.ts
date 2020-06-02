@@ -5,13 +5,13 @@ import { createDoExpression } from './grammar/utils'
 
 export { Lexer, Parser }
 
-const defaultLexer = new Lexer()
-const defaultParser = new Parser()
+export const defaultLexer = new Lexer()
+export const defaultParser = new Parser()
 
 registerTokens( defaultLexer )
 registerRules( defaultParser )
 
-export function parse( source: string, lexer = defaultLexer, parser = defaultParser ) {
+export function parse( source: string, lexer: Lexer<any> = defaultLexer, parser = defaultParser ) {
 
   lexer.source = source
 
@@ -31,17 +31,25 @@ export function parse( source: string, lexer = defaultLexer, parser = defaultPar
     return ast
 
   } catch(e) {
+    let token
     if (!e.lexer) {
-      const { line, column } = lexer.strpos()
+      token = parser.peek(0) // Last known token
+    } else {
+      // Parser can throw a token
+      token = e
+    }
+
+    if (!token) {
+      const { line, column } = lexer.strpos(lexer.position)
       throw new Error(`Parse error: ${e.message} at line ${line} column ${column}`)
     }
-    // Parser can throw a token
-    const { start: { line, column } } = e.strpos()
-    throw new Error(`Parse error: Token ${e.type} at line ${line} column ${column}`)
+
+    const { start: { line, column } } = token.strpos()
+    throw new Error(`Parse error: ${e.message || `Token ${token.type}`} at line ${line} column ${column}`)
   }
 }
 
-function parseSyntax(ast: any) {
+function parseSyntax(ast: any): any | any[] | void {
 
   // Create compact Lisp-style syntax tree for the evaluator
 
@@ -96,6 +104,6 @@ function parseSyntax(ast: any) {
   return node
 }
 
-function parseSyntaxArray(nodes) {
+function parseSyntaxArray(nodes: any[]) {
   return nodes.map(parseSyntax).filter(n => n!=null)
 }

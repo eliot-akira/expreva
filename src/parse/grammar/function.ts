@@ -35,17 +35,26 @@ export default function(parser) {
 
       let right
 
-      // Handle special case: x -> y => z
-      const nextNextToken = parser.peek(1)
-      if (nextNextToken && nextNextToken.type==='=>') {
-        // Get the whole lambda definition
+      // Get the whole expression following
+      // 1 -> x => y
+      // 1 -> (x,y) => z
+      let nextNextToken
+      if (((nextNextToken = parser.peek(0)) && nextNextToken.type==='(')
+        || ((nextNextToken = parser.peek(1)) &&  nextNextToken.type==='=>')
+      ) {
         right = parser.parse(0)
       } else {
         right = parser.parse(this.precedence)
       }
 
+      if (left.expressions) {
+        // Spread to arguments
+        left = left.expressions
+      }
+      if (!Array.isArray(left)) left = [left]
+
       return {
-        args: [right, left],
+        args: [right, ...left],
         toString() { return `${left} -> ${right}` },
       }
     }

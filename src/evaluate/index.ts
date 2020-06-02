@@ -2,7 +2,7 @@
  * This is a Lisp interpreter based on [miniMAL](https://github.com/kanaka/miniMAL) ported to TypeScript.
  */
 
-import { toString } from '../format'
+import { syntaxTreeToString } from '../format'
 import { Environment, RuntimeEnvironment, createEnvironment } from './environment'
 
 export * from './environment'
@@ -33,22 +33,22 @@ export const bindFunctionScope = function(
 
   args.forEach((a, i) =>
     // Spread arguments - (lambda (x & y) ())
-    a === '&' ? boundEnv[ args[i + 1] as string ] = givenArgs.slice(i) :
+    a === '&' ? (boundEnv[ args[i + 1] as string ] = givenArgs.slice(i)) :
     typeof a==='string'
       ? (boundEnv[ a as string ] = givenArgs[i])
       : Array.isArray(a)
         // Default argument - for example: (lambda ((def x 1)) (* x x))
         ? (a[0]==='def' && a[1]!=null)
-          ? boundEnv[ a[1] as string ] = (
+          ? (boundEnv[ a[1] as string ] = (
             givenArgs[i]!=null ? givenArgs[i]
               : evaluateExpression(a[2], boundEnv)
-          )
+          ))
           // Spread arguments - alternate syntax (lambda (x (... y)) ())
           : (a[0]==='...' && a[1]!=null)
-            ? boundEnv[ a[1] as string ] = givenArgs.slice(i)
+            ? (boundEnv[ a[1] as string ] = givenArgs.slice(i))
             // Expression as function argument?
             : evaluateExpression([ a ], boundEnv)
-        : env.throw({ message: `Unknown argument expression: ${toString(a)}` })
+        : env.throw({ message: `Unknown argument expression: ${syntaxTreeToString(a)}` })
   )
 
   return boundEnv
@@ -266,7 +266,7 @@ export function evaluate(ast: Expression, givenEnv?: RuntimeEnvironment): Expres
           // Print definition
           toString() {
             const def = ['λ', args, body]
-            return toString(def) // f.name ? ['def', f.name, def] :
+            return syntaxTreeToString(def) // f.name ? ['def', f.name, def] :
           }
         }
       )

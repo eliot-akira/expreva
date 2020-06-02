@@ -263,6 +263,10 @@ class Lexer<T> implements Iterable<Token<T>> {
 		return this
 	}
 
+  getTokenTypes() {
+    return this._tokenTypes.tokenTypes
+  }
+
 	/**
 	 * Creates a keyword
 	 * @param kwd The keyword to add as a token

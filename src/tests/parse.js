@@ -1,52 +1,51 @@
-const { parse, evaluate, toString } = require('./common')
+const { parse, evaluate, syntaxTreeToString } = require('./common')
 
-// test('parse', it => {
+test('parse', it => {
 
-//   let instructions = parse('1+1')
+  let instructions = parse('1+1')
 
-//   it('parses', instructions)
-//   it('returns instructions', it.is(instructions, ['+', 1, 1]))
-//   it('instructions are evaluated', it.is(evaluate(instructions), 2), instructions)
-// })
+  it('parses', instructions)
+  it('returns instructions', it.is(instructions, ['+', 1, 1]))
+  it('instructions are evaluated', it.is(evaluate(instructions), 2), instructions)
+})
 
-// test('parse invalid', it => {
-//   const exprs = [
-//     '(',
-//     ')',
-//     '}',
-//     ']',
-//     '.',
-//     ',',
-//     '->',
-//     '?',
-//     ':'
-//   ]
+test('parse invalid', it => {
+  const exprs = [
+    '(',
+    ')',
+    '}',
+    ']',
+    '.',
+    ',',
+    '->',
+    '?',
+    ':',
+    '{',
+    '[',
+  ]
 
-//   for (const expr of exprs) {
-//     it(expr, it.throws(() => parse(expr)) || it.is(parse(expr), []))
-//   }
+  for (const expr of exprs) {
+    it(expr, it.throws(() => parse(expr)) || it.is(parse(expr), []))
+  }
+})
 
-//   it('{', it.is(parse('{'), ['obj']))
-//   it('[', it.is(parse('['), ['list']))
-// })
+test('parse valid', it => {
+  const exprs = [
+    '()',
+    '1->()',
+    'f=x=>x;f(1)',
+    'true?1:0',
+    '{a:1}',
+    '[]',
+    '[1,2]',
+    '{}',
+    'a={};a.b',
+  ]
 
-// test('parse valid', it => {
-//   const exprs = [
-//     '()',
-//     '1->()',
-//     'f=x=>x;f(1)',
-//     'true?1:0',
-//     '{a:1}',
-//     '[]',
-//     '[1,2]',
-//     '{}',
-//     'a={};a.b',
-//   ]
-
-//   for (const expr of exprs) {
-//     it(expr, !it.throws(() => parse(expr)))
-//   }
-// })
+  for (const expr of exprs) {
+    it(expr, !it.throws(() => parse(expr)))
+  }
+})
 
 
 test('parse statements', it => {
@@ -78,8 +77,8 @@ test('parse statements', it => {
     '(1 2 3)': '(do 1 2 3)',
     '(1 2+3 4)': '(do 1 (+ 2 3) 4)',
 
-    // 'x=>(1 ()=>())': '(λ (x) (do 1 (λ ()) 2 3))',
-    // 'f=x=>(1 ()=>() 2 3)': '(def f (λ (x) (do 1 (λ ()) 2 3)))',
+    // 'x=>(1;()=>())': '(λ (x) (do 1 (λ ())))',
+    // 'f=x=>(1;()=>() 2 3)': '(def f (λ (x) (do 1 (λ ()) 2 3)))',
 
 
     'a={};b={};c={}': '(do (def a (obj)) (def b (obj)) (def c (obj)))',
@@ -118,7 +117,7 @@ test('parse statements', it => {
   }
 
   for (const key of Object.keys(exprs)) {
-    const result = toString(parse(key))
+    const result = syntaxTreeToString(parse(key))
     it(key, it.is(result, exprs[key]), 'expected', exprs[key], 'actual', result)
   }
 })

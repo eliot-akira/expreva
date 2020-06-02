@@ -42,40 +42,43 @@ function getToken(
   state: State,
   expreva: any
 ): Token | undefined {
+
   const emitToken = makeEmit(stream, state);
+
   if (stream.eatSpace()) {
     // skip whitespace
-    return undefined;
+    return undefined
   }
+
   const str = stream.string.slice(stream.pos)
   let matched
-  for (const rule of expreva.parser.lexer.rules) {
-    if (matched = rule.accept(str)) { // stream.match(rule.match)
+
+  if (!str) return
+
+  const tokenTypes = expreva.lexer.getTokenTypes()
+
+  for (const { type, regex } of tokenTypes) {
+    if (matched = str.match(regex)) {
+      matched = matched[0]
+
       stream.pos += matched.length
       return emitToken({
-        type: rule.name,
-        value: matched.token.value
+        type: type,
+        value: matched
       })
     }
   }
 
-  // if (stream.match(/#/)) {
-  //   if (!stream.match(/\n/)) {
-  //     // comment lasts till end of line
-  //     stream.match(/.*/); // if no eol encountered, comment lasts till end of file
-  //   }
-  //   return emitToken('COMMENT');
-  // }
-
   stream.next();
+
   return emitToken('ERROR');
 }
 
 export function defineMode(CodeMirror, expreva) {
-  CodeMirror.defineMode('expreva', createMode)
+  CodeMirror.defineMode('expreva', (...args) => createMode(expreva, ...args))
 }
 
-function createMode(_config: EditorConfiguration, _modeOptions?: any): Mode<State> {
+function createMode(expreva, _config: EditorConfiguration, _modeOptions?: any): Mode<State> {
   const {indentUnit = 2} = _config
   return {
     electricChars: "{}[]();",
@@ -138,24 +141,29 @@ function createMode(_config: EditorConfiguration, _modeOptions?: any): Mode<Stat
       if (token.type==='symbol' && previousToken && previousToken.type==='member') return 'property'
 
       switch (token.type) {
-        case 'number': return 'number';
+        case 'NUMBER': return 'number';
 
-        case 'open expression':
-        case 'open object':
-        case 'open list':
+        case '(':
+        case '{':
+        case '[':
           return 'bracket';
 
-        case 'close list':
-        case 'close expression':
-        case 'close object':
+        case ')':
+        case '}':
+        case ']':
           return 'bracket';
 
-        case 'argument separator':
-        case 'end statement':
+        case ',':
+        case ';':
           return 'punctuation';
 
+        case '=':
         case '+':
+        case '++':
+        case '+=':
         case '-':
+        case '--':
+        case '-=':
         case '*':
         case '/':
         case '^':
@@ -173,22 +181,24 @@ function createMode(_config: EditorConfiguration, _modeOptions?: any): Mode<Stat
 
         case 'def':
         case '->':
+        case '=>':
         case 'lambda':
         case 'member':
           return 'operator';
 
-        case 'if':
-        case 'or':
-        case 'and':
-        case 'not':
-        case 'macro':
-        case 'return':
-        case 'continue':
-        case 'break':
-          return 'keyword'
 
-        case 'symbol':
+        case 'IDENTIFIER':
           switch(token.value) {
+            case 'if':
+              case 'or':
+              case 'and':
+              case 'not':
+              case 'macro':
+              case 'return':
+              case 'continue':
+              case 'break':
+                return 'keyword'
+
             case 'then':
             case 'else':
               return 'keyword'
@@ -199,14 +209,14 @@ function createMode(_config: EditorConfiguration, _modeOptions?: any): Mode<Stat
 
             default: return 'variable-2';
           }
-        case 'single-quoted string':
-        case 'double-quoted string':
+        case 'STRING_SINGLE':
+        case 'STRING_DOUBLE':
             return 'string';
 
-        case 'comment': return 'comment';
+        case 'COMMENT': return 'comment';
         case 'error': return 'error';
         default:
-          // console.warn('Unknown token type', token)
+          // console.log('Unknown token type', token)
           return null
       }
     },

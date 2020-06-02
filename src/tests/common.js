@@ -19,8 +19,8 @@ const eva = it => (k, v) => {
 
 const parse = expreva.parse.bind(expreva)
 const evaluate = expreva.evaluate.bind(expreva)
-const toString = expreva.toString.bind(expreva)
+const syntaxTreeToString = expreva.syntaxTreeToString.bind(expreva)
 
 const inspect = obj => util.inspect(obj, false, null, true)
 
-export { eva, parse, evaluate, toString, inspect }
+export { eva, parse, evaluate, syntaxTreeToString, inspect }

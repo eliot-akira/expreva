@@ -2,7 +2,7 @@ import { precedence } from './constants'
 
 export default function(parser) {
 
-  // Positive and negative  sign
+  // Positive and negative sign
 
   for (const operator of [ '+', '-' ]) {
     parser.prefix(operator, precedence.PREFIX, (token, right) => {

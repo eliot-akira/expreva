@@ -1,11 +1,26 @@
-import { parse as defaultParse } from './parse'
-import { evaluate as evaluateSyntaxTree } from './evaluate'
+import {
+  parse as defaultParse,
+  defaultParser,
+  defaultLexer
+} from './parse'
+import {
+  Expression,
+  RuntimeEnvironment,
+  evaluate as evaluateSyntaxTree
+} from './evaluate'
 
 export { parse, Lexer, Parser } from './parse'
 export { createEnvironment } from './evaluate'
-export { toString, toFormattedString } from './format'
+export {
+  syntaxTreeToString,
+  syntaxTreeToPrettyString,
+  valueToPrettyString
+} from './format'
 
-export function evaluate(source, env, parse = defaultParse) {
+export { defaultParser as parser }
+export { defaultLexer as lexer }
+
+export function evaluate(source: string | Expression[], env: RuntimeEnvironment, parse = defaultParse) {
   return evaluateSyntaxTree(
     typeof source === 'string' ? parse(source) : source,
     env

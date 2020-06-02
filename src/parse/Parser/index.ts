@@ -15,14 +15,17 @@ import {
 } from './parselets'
 
 export {
-  Token,
-  Parselet,
   PrefixParselet,
   XfixParselet,
-  IXfixParselet,
   PrefixUnaryParselet,
   PostfixUnaryParselet,
   BinaryParselet,
+}
+
+export type {
+  Token,
+  Parselet,
+  IXfixParselet,
   ExpressionParserInterface,
 }
 
@@ -32,6 +35,7 @@ class ExpressionParser<N, T extends Token> implements ExpressionParserInterface<
   private q: T[] = []
 
   public stack: T[] = []
+  public lastKnownToken
 
   constructor(
     private prefixParselets: Map<string, PrefixParselet<N, T>>,
@@ -58,6 +62,8 @@ class ExpressionParser<N, T extends Token> implements ExpressionParserInterface<
     } else {
       if (!t) throw new Error(`Unexpected end of input`)
     }
+
+    if (t) this.lastKnownToken = t
 
     return t
   }
@@ -178,12 +184,16 @@ export class Parser<N, T extends Token> {
     return this.register(tokenType, new BinaryParselet(cons, precedence, associativity))
   }
 
+  public peek(num?: number) {
+    return this.parser && (this.parser.peek(num) || this.parser.lastKnownToken)
+  }
+
   public parse(tokens: Iterable<T>, interpreter?: (node: N) => N) {
 
     if (!tokens || !tokens[Symbol.iterator] || tokens.peek().isEof()) return []
 
     const expressions = []
-    const parser = new ExpressionParser(this.prefixParselets, this.xfixParselets, tokens, interpreter)
+    const parser = this.parser = new ExpressionParser(this.prefixParselets, this.xfixParselets, tokens, interpreter)
 
     let expression
 
