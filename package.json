@@ -1,14 +1,15 @@
 {
   "name": "expreva",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Expreva - A language based on arithmetic and algebra expressions",
   "scripts": {
-    "build": "rm -rf build ; tgb build",
     "dev": "rm -rf build ; concurrently --prefix none --kill-others --handle-input 'sleep 3 && testra -w build/tests' 'tgb dev'",
+    "build": "rm -rf build ; tgb build && cp package.json build && cp readme.md build && cp screenshot.png build && cp run build",
     "sandbox": "cd example && tgb dev",
+    "cli": "yarn build && node build/cli",
     "test": "yarn build && testra build/tests",
     "type": "tsc --declaration --emitDeclarationOnly",
-    "deploy": "./deploy"
+    "release": "yarn build && cd build && npm publish"
   },
   "bin": {
     "expr": "run"
@@ -16,14 +17,16 @@
   "main": "index.js",
   "browser": "web/expreva.min.js",
   "files": [
+    "run",
     "**/*.js",
     "readme.md"
   ],
   "dependencies": {},
   "devDependencies": {
-    "@tangible/builder": "^1.4.6",
-    "concurrently": "^5.1.0",
-    "testra": "^1.0.7"
+    "@tangible/builder": "^1.6.1",
+    "@types/node": "^14.0.13",
+    "concurrently": "^5.2.0",
+    "testra": "^1.1.0"
   },
   "keywords": [
     "expression",
