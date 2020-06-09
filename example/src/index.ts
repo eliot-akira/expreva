@@ -45,11 +45,11 @@ function setText(el, value) {
 }
 
 function renderValue(val) {
-  return expreva.toFormattedString(val)
+  return expreva.valueToPrettyString(val)
 }
 
 function renderInstructions(instr) {
-  return expreva.toFormattedString(instr)
+  return expreva.syntaxTreeToPrettyString(instr)
 }
 
 function clearError() {
